@@ -3,7 +3,7 @@
 ```
 Module Name: Sortable Bid Adapter
 Module Type: Bidder Adapter
-Maintainer: marks@sortable.com
+Maintainer: prebid@sortable.com
 ```
 
 # Description
