@@ -2,8 +2,9 @@ import { expect } from 'chai';
 import { spec } from 'modules/sortableBidAdapter';
 import { newBidder } from 'src/adapters/bidderFactory';
 import { REPO_AND_VERSION } from 'src/constants';
+import * as utils from 'src/utils';
 
-const ENDPOINT = `//c.deployads.com/openrtb2/auction?src=${REPO_AND_VERSION}`;
+const ENDPOINT = `//c.deployads.com/openrtb2/auction?src=${REPO_AND_VERSION}&${utils.getTopWindowLocation().host}`;
 
 describe('sortableBidAdapter', function() {
   const adapter = newBidder(spec);
@@ -88,47 +89,71 @@ describe('sortableBidAdapter', function() {
   });
 
   describe('interpretResponse', () => {
-    let response = {
-      body: {
-        'id': '5e5c23a5ba71e78',
-        'seatbid': [
-          {
-            'bid': [
-              {
-                'id': '6vmb3isptf',
-                'impid': '322add653672f68',
-                'price': 1.22,
-                'adm': '<!-- creative -->',
-                'attr': [5],
-                'h': 90,
-                'nurl': 'http://nurl',
-                'w': 728
-              }
-            ],
-            'seat': 'MOCK'
-          }
-        ],
-        'bidid': '5e5c23a5ba71e78'
-      }
+    function makeResponse() {
+      return {
+        body: {
+          'id': '5e5c23a5ba71e78',
+          'seatbid': [
+            {
+              'bid': [
+                {
+                  'id': '6vmb3isptf',
+                  'impid': '322add653672f68',
+                  'price': 1.22,
+                  'adm': '<!-- creative -->',
+                  'attr': [5],
+                  'h': 90,
+                  'nurl': 'http://nurl',
+                  'w': 728
+                }
+              ],
+              'seat': 'MOCK'
+            }
+          ],
+          'bidid': '5e5c23a5ba71e78'
+        }
+      };
+    }
+
+    const expectedBid = {
+      'requestId': '322add653672f68',
+      'cpm': 1.22,
+      'width': 728,
+      'height': 90,
+      'creativeId': '6vmb3isptf',
+      'dealId': null,
+      'currency': 'USD',
+      'netRevenue': true,
+      'mediaType': 'banner',
+      'ttl': 60,
+      'ad': '<!-- creative --><div style="position:absolute;left:0px;top:0px;visibility:hidden;"><img src="http://nurl"></div>'
     };
 
     it('should get the correct bid response', () => {
-      let expectedResponse = [{
-        'requestId': '322add653672f68',
-        'cpm': 1.22,
-        'width': 728,
-        'height': 90,
-        'creativeId': '6vmb3isptf',
-        'dealId': null,
-        'currency': 'USD',
-        'netRevenue': true,
-        'mediaType': 'banner',
-        'ttl': 60,
-        'ad': '<!-- creative --><div style="position:absolute;left:0px;top:0px;visibility:hidden;"><img src="http://nurl"></div>'
-      }];
+      let result = spec.interpretResponse(makeResponse());
+      expect(result.length).to.equal(1);
+      expect(result[0]).to.deep.equal(expectedBid);
+    });
 
-      let result = spec.interpretResponse(response);
-      expect(Object.keys(result[0])).to.deep.equal(Object.keys(expectedResponse[0]));
+    it('should handle a missing nurl', () => {
+      let noNurlResponse = makeResponse();
+      delete noNurlResponse.body.seatbid[0].bid[0].nurl;
+      let noNurlResult = Object.assign({}, expectedBid);
+      noNurlResult.ad = '<!-- creative -->';
+      let result = spec.interpretResponse(noNurlResponse);
+      expect(result.length).to.equal(1);
+      expect(result[0]).to.deep.equal(noNurlResult);
+    });
+
+    it('should handle a missing adm', () => {
+      let noAdmResponse = makeResponse();
+      delete noAdmResponse.body.seatbid[0].bid[0].adm;
+      let noAdmResult = Object.assign({}, expectedBid);
+      delete noAdmResult.ad;
+      noAdmResult.adUrl = 'http://nurl';
+      let result = spec.interpretResponse(noAdmResponse);
+      expect(result.length).to.equal(1);
+      expect(result[0]).to.deep.equal(noAdmResult);
     });
 
     it('handles empty bid response', () => {

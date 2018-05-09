@@ -12,7 +12,8 @@ export const spec = {
 
   isBidRequestValid: function(bid) {
     const haveSiteId = !!config.getConfig('sortableId');
-    return !!(bid.params.tagid && (haveSiteId || bid.params.siteId) && bid.sizes && bid.sizes.every(sizeArr => sizeArr.length == 2));
+    return !!(bid.params.tagid && (haveSiteId || bid.params.siteId) && bid.sizes &&
+      bid.sizes.every(sizeArr => sizeArr.length == 2 && sizeArr.every(Number.isInteger)));
   },
 
   buildRequests: function(validBidReqs, bidderRequest) {
@@ -41,13 +42,22 @@ export const spec = {
           h: screen.height,
         },
       },
-      ext: {
-        gdpr: gdprConsent,
-      },
     };
+    if (gdprConsent) {
+      sortableBidReq.user = {
+        ext: {
+          consent: gdprConsent.consentString
+        }
+      };
+      sortableBidReq.regs = {
+        ext: {
+          gdpr: gdprConsent.gdprApplies ? 1 : 0
+        }
+      };
+    }
     return {
       method: 'POST',
-      url: `//c.deployads.com/openrtb2/auction?src=${REPO_AND_VERSION}`,
+      url: `//c.deployads.com/openrtb2/auction?src=${REPO_AND_VERSION}&${loc.host}`,
       data: JSON.stringify(sortableBidReq),
       options: {contentType: 'text/plain'}
     };
