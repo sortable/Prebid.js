@@ -19,13 +19,24 @@ export const spec = {
   buildRequests: function(validBidReqs, bidderRequest) {
     const loc = utils.getTopWindowLocation();
     const configSortableId = config.getConfig('sortableId') || validBidReqs[0].params.siteId;
-    const sortableImps = utils._map(validBidReqs, bid => ({
-      id: bid.bidId,
-      tagid: bid.params.tagid,
-      banner: {
-        format: utils._map(bid.sizes, ([width, height]) => ({w: width, h: height}))
-      },
-    }));
+    const sortableImps = utils._map(validBidReqs, bid => {
+      let rv = {
+        id: bid.bidId,
+        tagid: bid.params.tagid,
+        banner: {
+          format: utils._map(bid.sizes, ([width, height]) => ({w: width, h: height}))
+        }
+      };
+      if (bid.params.keywords) {
+        let segments = utils._map(bid.params.keywords, (foo, bar) => ({name: foo, value: bar}));
+        rv.content = {
+          data: [{
+            segment: segments
+          }]
+        };
+      }
+      return rv;
+    });
     const gdprConsent = bidderRequest && bidderRequest.gdprConsent;
     const sortableBidReq = {
       id: utils.getUniqueIdentifierStr(),
@@ -55,6 +66,7 @@ export const spec = {
         }
       };
     }
+
     return {
       method: 'POST',
       url: `//c.deployads.com/openrtb2/auction?src=${REPO_AND_VERSION}&${loc.host}`,
@@ -94,6 +106,21 @@ export const spec = {
       });
     }
     return sortableBids;
+  },
+
+  // getUserSyncs(syncOptions, responses, gdprConsent) {
+
+  // }
+
+  onTimeout(details) {
+    fetch(`//c.deployads.com/prebid/timeout`, {
+      method: 'POST',
+      body: JSON.stringify(details),
+      mode: 'no-cors',
+      headers: new Headers({
+        'Content-Type': 'text/plain'
+      })
+    });
   }
 };
 
