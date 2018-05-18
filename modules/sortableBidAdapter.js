@@ -5,6 +5,7 @@ import { BANNER } from 'src/mediaTypes';
 import { REPO_AND_VERSION } from 'src/constants';
 
 const BIDDER_CODE = 'sortable';
+const SERVER_URL = 'c.deployads.com';
 
 export const spec = {
   code: BIDDER_CODE,
@@ -28,11 +29,9 @@ export const spec = {
         }
       };
       if (bid.params.keywords) {
-        let segments = utils._map(bid.params.keywords, (foo, bar) => ({name: foo, value: bar}));
-        rv.content = {
-          data: [{
-            segment: segments
-          }]
+        let keywords = utils._map(bid.params.keywords, (foo, bar) => ({name: bar, value: foo}));
+        rv.ext = {
+          keywords: keywords
         };
       }
       return rv;
@@ -69,7 +68,7 @@ export const spec = {
 
     return {
       method: 'POST',
-      url: `//c.deployads.com/openrtb2/auction?src=${REPO_AND_VERSION}&${loc.host}`,
+      url: `//${SERVER_URL}/openrtb2/auction?src=${REPO_AND_VERSION}&${loc.host}`,
       data: JSON.stringify(sortableBidReq),
       options: {contentType: 'text/plain'}
     };
@@ -108,12 +107,8 @@ export const spec = {
     return sortableBids;
   },
 
-  // getUserSyncs(syncOptions, responses, gdprConsent) {
-
-  // }
-
   onTimeout(details) {
-    fetch(`//c.deployads.com/prebid/timeout`, {
+    fetch(`//${SERVER_URL}/prebid/timeout`, {
       method: 'POST',
       body: JSON.stringify(details),
       mode: 'no-cors',

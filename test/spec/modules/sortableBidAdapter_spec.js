@@ -10,42 +10,47 @@ describe('sortableBidAdapter', function() {
   const adapter = newBidder(spec);
 
   describe('isBidRequestValid', () => {
-    let bid = {
-      'bidder': 'sortable',
-      'params': {
-        'tagid': '403370',
-        'siteId': 1,
-      },
-      'adUnitCode': 'adunit-code',
-      'sizes': [
-        [300, 250]
-      ],
-      'bidId': '30b31c1838de1e',
-      'bidderRequestId': '22edbae2733bf6',
-      'auctionId': '1d1a030790a475',
-    };
+    function makeBid() {
+      return {
+        'bidder': 'sortable',
+        'params': {
+          'tagid': '403370',
+          'siteId': 1,
+        },
+        'adUnitCode': 'adunit-code',
+        'sizes': [
+          [300, 250]
+        ],
+        'bidId': '30b31c1838de1e',
+        'bidderRequestId': '22edbae2733bf6',
+        'auctionId': '1d1a030790a475',
+      };
+    }
 
     it('should return true when required params found', () => {
-      expect(spec.isBidRequestValid(bid)).to.equal(true);
+      expect(spec.isBidRequestValid(makeBid())).to.equal(true);
     });
 
     it('should return false when tagid not passed correctly', () => {
+      let bid = makeBid();
       delete bid.params.tagid;
       expect(spec.isBidRequestValid(bid)).to.equal(false);
     });
 
     it('should return false when sizes not passed correctly', () => {
+      let bid = makeBid();
       delete bid.sizes;
       expect(spec.isBidRequestValid(bid)).to.equal(false);
     });
 
     it('should return false when sizes are wrong length', () => {
+      let bid = makeBid();
       bid.sizes = [[300]];
       expect(spec.isBidRequestValid(bid)).to.equal(false);
     });
 
     it('should return false when require params are not passed', () => {
-      let bid = Object.assign({}, bid);
+      let bid = makeBid();
       bid.params = {};
       expect(spec.isBidRequestValid(bid)).to.equal(false);
     });
