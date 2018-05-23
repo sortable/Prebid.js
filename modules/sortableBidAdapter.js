@@ -26,13 +26,17 @@ export const spec = {
         tagid: bid.params.tagid,
         banner: {
           format: utils._map(bid.sizes, ([width, height]) => ({w: width, h: height}))
-        }
+        },
+        ext: {}
       };
       if (bid.params.keywords) {
         let keywords = utils._map(bid.params.keywords, (foo, bar) => ({name: bar, value: foo}));
-        rv.ext = {
-          keywords: keywords
-        };
+        rv.ext.keywords = keywords;
+      }
+      if (bid.params.bidderParams) {
+        utils._each(bid.params.bidderParams, (params, partner) => {
+          rv.ext[partner] = params;
+        });
       }
       return rv;
     });
