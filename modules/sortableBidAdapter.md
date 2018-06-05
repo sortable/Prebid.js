@@ -21,7 +21,11 @@ var adUnits = [
       bidder: 'sortable',
       params: {
         tagid: 'test-pb-leaderboard',
-        siteId: 1
+        siteId: 1,
+        'keywords': {
+          'key1': 'val1',
+          'key2': 'val2'
+        }
       }
     }]
   }, {
@@ -41,7 +45,10 @@ var adUnits = [
       bidder: 'sortable',
       params: {
         tagid: 'test-pb-sidebar',
-        siteId: 1
+        siteId: 1,
+        'keywords': {
+          'keyA': 'valA'
+        }
       }
     }]
   }

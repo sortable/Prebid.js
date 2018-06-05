@@ -4,7 +4,7 @@ import { newBidder } from 'src/adapters/bidderFactory';
 import { REPO_AND_VERSION } from 'src/constants';
 import * as utils from 'src/utils';
 
-const ENDPOINT = `//c.deployads.com/openrtb2/auction?src=${REPO_AND_VERSION}&${utils.getTopWindowLocation().host}`;
+const ENDPOINT = `//c.deployads.com/openrtb2/auction?src=${REPO_AND_VERSION}&host=${utils.getTopWindowLocation().host}`;
 
 describe('sortableBidAdapter', function() {
   const adapter = newBidder(spec);
@@ -16,6 +16,10 @@ describe('sortableBidAdapter', function() {
         'params': {
           'tagid': '403370',
           'siteId': 1,
+          'keywords': {
+            'key1': 'val1',
+            'key2': 'val2'
+          }
         },
         'adUnitCode': 'adunit-code',
         'sizes': [
@@ -62,6 +66,10 @@ describe('sortableBidAdapter', function() {
       'params': {
         'tagid': '403370',
         'siteId': 1,
+        'keywords': {
+          'key1': 'val1',
+          'key2': 'val2'
+        }
       },
       'sizes': [
         [300, 250]
@@ -90,6 +98,15 @@ describe('sortableBidAdapter', function() {
     it('includes the ad size in the bid request', () => {
       expect(requestBody.imp[0].banner.format[0].w).to.equal(300);
       expect(requestBody.imp[0].banner.format[0].h).to.equal(250);
+    });
+
+    it('includes the params in the bid request', () => {
+      expect(requestBody.imp[0].ext.keywords).to.deep.equal([
+        {'name': 'key1', 'value': 'val1'},
+        {'name': 'key2', 'value': 'val2'}
+      ]);
+      expect(requestBody.site.publisher.id).to.equal(1);
+      expect(requestBody.imp[0].tagid).to.equal('403370');
     });
   });
 

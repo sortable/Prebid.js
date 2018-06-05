@@ -47,7 +47,7 @@ export const spec = {
       site: {
         domain: loc.host,
         page: loc.href,
-        referer: utils.getTopWindowReferrer(),
+        ref: utils.getTopWindowReferrer(),
         publisher: {
           id: configSortableId,
         },
@@ -72,7 +72,7 @@ export const spec = {
 
     return {
       method: 'POST',
-      url: `//${SERVER_URL}/openrtb2/auction?src=${REPO_AND_VERSION}&${loc.host}`,
+      url: `//${SERVER_URL}/openrtb2/auction?src=${REPO_AND_VERSION}&host=${loc.host}`,
       data: JSON.stringify(sortableBidReq),
       options: {contentType: 'text/plain'}
     };
