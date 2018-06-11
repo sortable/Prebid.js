@@ -13,7 +13,7 @@ export const spec = {
 
   isBidRequestValid: function(bid) {
     const haveSiteId = !!config.getConfig('sortableId');
-    return !!(bid.params.tagid && (haveSiteId || bid.params.siteId) && bid.sizes &&
+    return !!(bid.params.tagId && (haveSiteId || bid.params.siteId) && bid.sizes &&
       bid.sizes.every(sizeArr => sizeArr.length == 2 && sizeArr.every(Number.isInteger)));
   },
 
@@ -23,7 +23,7 @@ export const spec = {
     const sortableImps = utils._map(validBidReqs, bid => {
       let rv = {
         id: bid.bidId,
-        tagid: bid.params.tagid,
+        tagid: bid.params.tagId,
         banner: {
           format: utils._map(bid.sizes, ([width, height]) => ({w: width, h: height}))
         },

@@ -14,7 +14,7 @@ describe('sortableBidAdapter', function() {
       return {
         'bidder': 'sortable',
         'params': {
-          'tagid': '403370',
+          'tagId': '403370',
           'siteId': 1,
           'keywords': {
             'key1': 'val1',
@@ -35,9 +35,9 @@ describe('sortableBidAdapter', function() {
       expect(spec.isBidRequestValid(makeBid())).to.equal(true);
     });
 
-    it('should return false when tagid not passed correctly', () => {
+    it('should return false when tagId not passed correctly', () => {
       let bid = makeBid();
-      delete bid.params.tagid;
+      delete bid.params.tagId;
       expect(spec.isBidRequestValid(bid)).to.equal(false);
     });
 
@@ -64,7 +64,7 @@ describe('sortableBidAdapter', function() {
     const bidRequests = [{
       'bidder': 'sortable',
       'params': {
-        'tagid': '403370',
+        'tagId': '403370',
         'siteId': 1,
         'keywords': {
           'key1': 'val1',
