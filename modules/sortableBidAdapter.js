@@ -6,6 +6,23 @@ import { REPO_AND_VERSION } from 'src/constants';
 
 const BIDDER_CODE = 'sortable';
 const SERVER_URL = 'c.deployads.com';
+const LOC = utils.getTopWindowLocation();
+const SORTABLE_ID = config.getConfig('sortableId');
+
+function detectDeviceType (userAgent) {
+  if (!userAgent)
+    return "U";
+  if (/Mobi|Opera Mini|BlackBerry/i.test(userAgent)) {
+    if (/Tablet|iPad/i.test(userAgent))
+      return "T";
+    return "S";
+  }
+  if (/Tablet|Android|Silk/i.test(userAgent))
+    return "T";
+  return "D";
+}
+
+const DEVICE_TYPE = detectDeviceType(navigator.userAgent);
 
 export const spec = {
   code: BIDDER_CODE,
@@ -18,8 +35,6 @@ export const spec = {
   },
 
   buildRequests: function(validBidReqs, bidderRequest) {
-    const loc = utils.getTopWindowLocation();
-    const configSortableId = config.getConfig('sortableId') || validBidReqs[0].params.siteId;
     const sortableImps = utils._map(validBidReqs, bid => {
       let rv = {
         id: bid.bidId,
@@ -45,15 +60,15 @@ export const spec = {
       id: utils.getUniqueIdentifierStr(),
       imp: sortableImps,
       site: {
-        domain: loc.host,
-        page: loc.href,
+        domain: LOC.host,
+        page: LOC.href,
         ref: utils.getTopWindowReferrer(),
         publisher: {
-          id: configSortableId,
+          id: SORTABLE_ID || validBidReqs[0].params.siteId,
         },
         device: {
           w: screen.width,
-          h: screen.height,
+          h: screen.height
         },
       },
     };
@@ -72,7 +87,7 @@ export const spec = {
 
     return {
       method: 'POST',
-      url: `//${SERVER_URL}/openrtb2/auction?src=${REPO_AND_VERSION}&host=${loc.host}`,
+      url: `//${SERVER_URL}/openrtb2/auction?src=${REPO_AND_VERSION}&host=${LOC.host}`,
       data: JSON.stringify(sortableBidReq),
       options: {contentType: 'text/plain'}
     };
@@ -110,7 +125,18 @@ export const spec = {
     }
     return sortableBids;
   },
-
+  
+  getUserSyncs: (syncOptions, responses, gdprConsent) => {
+    let syncUrl = `//${SERVER_URL}/sync?f=html&g=${gdprConsent.gdprApplies ? 1 : 0}&cs=${gdprConsent.consentString || ''}&d=${DEVICE_TYPE}&s=${SORTABLE_ID}&u=${encodeURIComponent(utils.getTopWindowReferrer())}`;
+    
+    if (syncOptions.iframeEnabled) {
+      return [{
+        type: 'iframe',
+        url: syncUrl
+      }];
+    }
+  },
+  
   onTimeout(details) {
     fetch(`//${SERVER_URL}/prebid/timeout`, {
       method: 'POST',
