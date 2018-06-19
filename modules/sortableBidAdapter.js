@@ -6,7 +6,6 @@ import { REPO_AND_VERSION } from 'src/constants';
 
 const BIDDER_CODE = 'sortable';
 const SERVER_URL = 'c.deployads.com';
-const LOC = utils.getTopWindowLocation();
 const SORTABLE_ID = config.getConfig('sortableId');
 
 function detectDeviceType (userAgent) {
@@ -35,6 +34,8 @@ export const spec = {
   },
 
   buildRequests: function(validBidReqs, bidderRequest) {
+    let loc = utils.getTopWindowLocation();
+
     const sortableImps = utils._map(validBidReqs, bid => {
       let rv = {
         id: bid.bidId,
@@ -60,8 +61,8 @@ export const spec = {
       id: utils.getUniqueIdentifierStr(),
       imp: sortableImps,
       site: {
-        domain: LOC.host,
-        page: LOC.href,
+        domain: loc.host,
+        page: loc.href,
         ref: utils.getTopWindowReferrer(),
         publisher: {
           id: SORTABLE_ID || validBidReqs[0].params.siteId,
@@ -87,7 +88,7 @@ export const spec = {
 
     return {
       method: 'POST',
-      url: `//${SERVER_URL}/openrtb2/auction?src=${REPO_AND_VERSION}&host=${LOC.host}`,
+      url: `//${SERVER_URL}/openrtb2/auction?src=${REPO_AND_VERSION}&host=${loc.host}`,
       data: JSON.stringify(sortableBidReq),
       options: {contentType: 'text/plain'}
     };
@@ -125,18 +126,18 @@ export const spec = {
     }
     return sortableBids;
   },
-  
+
   getUserSyncs: (syncOptions, responses, gdprConsent) => {
-    let syncUrl = `//${SERVER_URL}/sync?f=html&g=${gdprConsent.gdprApplies ? 1 : 0}&cs=${gdprConsent.consentString || ''}&d=${DEVICE_TYPE}&s=${SORTABLE_ID}&u=${encodeURIComponent(utils.getTopWindowReferrer())}`;
-    
-    if (syncOptions.iframeEnabled) {
+    let syncUrl = `//${SERVER_URL}/sync?f=html&g=${gdprConsent.gdprApplies ? 1 : 0}&cs=${gdprConsent.consentString || ''}&d=${DEVICE_TYPE}&s=${SORTABLE_ID}&u=${encodeURIComponent(utils.getTopWindowLocation())}`;
+
+    if (syncOptions.iframeEnabled && SORTABLE_ID) {
       return [{
         type: 'iframe',
         url: syncUrl
       }];
     }
   },
-  
+
   onTimeout(details) {
     fetch(`//${SERVER_URL}/prebid/timeout`, {
       method: 'POST',
