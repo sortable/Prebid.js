@@ -8,21 +8,6 @@ const BIDDER_CODE = 'sortable';
 const SERVER_URL = 'c.deployads.com';
 const SORTABLE_ID = config.getConfig('sortableId');
 
-function detectDeviceType (userAgent) {
-  if (!userAgent)
-    return "U";
-  if (/Mobi|Opera Mini|BlackBerry/i.test(userAgent)) {
-    if (/Tablet|iPad/i.test(userAgent))
-      return "T";
-    return "S";
-  }
-  if (/Tablet|Android|Silk/i.test(userAgent))
-    return "T";
-  return "D";
-}
-
-const DEVICE_TYPE = detectDeviceType(navigator.userAgent);
-
 export const spec = {
   code: BIDDER_CODE,
   supportedMediaTypes: [BANNER],
@@ -128,7 +113,7 @@ export const spec = {
   },
 
   getUserSyncs: (syncOptions, responses, gdprConsent) => {
-    let syncUrl = `//${SERVER_URL}/sync?f=html&g=${gdprConsent.gdprApplies ? 1 : 0}&cs=${gdprConsent.consentString || ''}&d=${DEVICE_TYPE}&s=${SORTABLE_ID}&u=${encodeURIComponent(utils.getTopWindowLocation())}`;
+    let syncUrl = `//${SERVER_URL}/sync?f=html&g=${gdprConsent.gdprApplies ? 1 : 0}&cs=${gdprConsent.consentString || ''}&s=${SORTABLE_ID}&u=${encodeURIComponent(utils.getTopWindowLocation())}`;
 
     if (syncOptions.iframeEnabled && SORTABLE_ID) {
       return [{
