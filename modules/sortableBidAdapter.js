@@ -6,6 +6,7 @@ import { REPO_AND_VERSION } from 'src/constants';
 
 const BIDDER_CODE = 'sortable';
 const SERVER_URL = 'c.deployads.com';
+const SORTABLE_ID = config.getConfig('sortableId');
 
 export const spec = {
   code: BIDDER_CODE,
@@ -18,8 +19,8 @@ export const spec = {
   },
 
   buildRequests: function(validBidReqs, bidderRequest) {
-    const loc = utils.getTopWindowLocation();
-    const configSortableId = config.getConfig('sortableId') || validBidReqs[0].params.siteId;
+    let loc = utils.getTopWindowLocation();
+
     const sortableImps = utils._map(validBidReqs, bid => {
       let rv = {
         id: bid.bidId,
@@ -49,11 +50,11 @@ export const spec = {
         page: loc.href,
         ref: utils.getTopWindowReferrer(),
         publisher: {
-          id: configSortableId,
+          id: SORTABLE_ID || validBidReqs[0].params.siteId,
         },
         device: {
           w: screen.width,
-          h: screen.height,
+          h: screen.height
         },
       },
     };
@@ -109,6 +110,17 @@ export const spec = {
       });
     }
     return sortableBids;
+  },
+
+  getUserSyncs: (syncOptions, responses, gdprConsent) => {
+    let syncUrl = `//${SERVER_URL}/sync?f=html&g=${gdprConsent.gdprApplies ? 1 : 0}&cs=${gdprConsent.consentString || ''}&s=${SORTABLE_ID}&u=${encodeURIComponent(utils.getTopWindowLocation())}`;
+
+    if (syncOptions.iframeEnabled && SORTABLE_ID) {
+      return [{
+        type: 'iframe',
+        url: syncUrl
+      }];
+    }
   },
 
   onTimeout(details) {
