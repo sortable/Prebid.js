@@ -113,7 +113,12 @@ export const spec = {
   },
 
   getUserSyncs: (syncOptions, responses, gdprConsent) => {
-    let syncUrl = `//${SERVER_URL}/sync?f=html&g=${gdprConsent.gdprApplies ? 1 : 0}&cs=${gdprConsent.consentString || ''}&s=${SORTABLE_ID}&u=${encodeURIComponent(utils.getTopWindowLocation())}`;
+    let syncUrl = `//${SERVER_URL}/sync?f=html&u=${encodeURIComponent(utils.getTopWindowLocation())}`;
+
+    if (gdprConsent) {
+      syncurl += '&g=' + (gdprConsent.gdprApplies ? 1 : 0);
+      syncurl += '&cs=' + encodeURIComponent(gdprConsent.consentString || '');
+    }
 
     if (syncOptions.iframeEnabled && SORTABLE_ID) {
       return [{
