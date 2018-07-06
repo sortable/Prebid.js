@@ -6,21 +6,19 @@ import { REPO_AND_VERSION } from 'src/constants';
 
 const BIDDER_CODE = 'sortable';
 const SERVER_URL = 'c.deployads.com';
+const SORTABLE_ID = config.getConfig('sortableId');
 
 export const spec = {
   code: BIDDER_CODE,
   supportedMediaTypes: [BANNER],
 
   isBidRequestValid: function(bid) {
-    const sortableConfig = config.getConfig('sortable');
-    const haveSiteId = (sortableConfig && !!sortableConfig.siteId) || bid.params.siteId;
-    return !!(bid.params.tagId && haveSiteId && bid.sizes &&
+    const haveSiteId = !!config.getConfig('sortableId');
+    return !!(bid.params.tagId && (haveSiteId || bid.params.siteId) && bid.sizes &&
       bid.sizes.every(sizeArr => sizeArr.length == 2 && sizeArr.every(Number.isInteger)));
   },
 
   buildRequests: function(validBidReqs, bidderRequest) {
-    const sortableConfig = config.getConfig('sortable') || {};
-    const globalSiteId = sortableConfig.siteId;
     let loc = utils.getTopWindowLocation();
 
     const sortableImps = utils._map(validBidReqs, bid => {
@@ -32,9 +30,6 @@ export const spec = {
         },
         ext: {}
       };
-      if (bid.params.floor) {
-        rv.bidfloor = bid.params.floor;
-      }
       if (bid.params.keywords) {
         let keywords = utils._map(bid.params.keywords, (foo, bar) => ({name: bar, value: foo}));
         rv.ext.keywords = keywords;
@@ -51,11 +46,11 @@ export const spec = {
       id: utils.getUniqueIdentifierStr(),
       imp: sortableImps,
       site: {
-        domain: loc.hostname,
+        domain: loc.host,
         page: loc.href,
         ref: utils.getTopWindowReferrer(),
         publisher: {
-          id: globalSiteId || validBidReqs[0].params.siteId,
+          id: SORTABLE_ID || validBidReqs[0].params.siteId,
         },
         device: {
           w: screen.width,
@@ -118,15 +113,14 @@ export const spec = {
   },
 
   getUserSyncs: (syncOptions, responses, gdprConsent) => {
-    const sortableConfig = config.getConfig('sortable');
-    if (syncOptions.iframeEnabled && sortableConfig && !!sortableConfig.siteId) {
-      let syncUrl = `//${SERVER_URL}/sync?f=html&s=${sortableConfig.siteId}&u=${encodeURIComponent(utils.getTopWindowLocation())}`;
+    let syncUrl = `//${SERVER_URL}/sync?f=html&u=${encodeURIComponent(utils.getTopWindowLocation())}`;
 
-      if (gdprConsent) {
-        syncurl += '&g=' + (gdprConsent.gdprApplies ? 1 : 0);
-        syncurl += '&cs=' + encodeURIComponent(gdprConsent.consentString || '');
-      }
+    if (gdprConsent) {
+      syncurl += '&g=' + (gdprConsent.gdprApplies ? 1 : 0);
+      syncurl += '&cs=' + encodeURIComponent(gdprConsent.consentString || '');
+    }
 
+    if (syncOptions.iframeEnabled && SORTABLE_ID) {
       return [{
         type: 'iframe',
         url: syncUrl
