@@ -21,7 +21,7 @@ var adUnits = [
       bidder: 'sortable',
       params: {
         tagId: 'test-pb-leaderboard',
-        siteId: 'prebid.example.com',
+        siteId: 1,
         'keywords': {
           'key1': 'val1',
           'key2': 'val2'
@@ -35,7 +35,7 @@ var adUnits = [
       bidder: 'sortable',
       params: {
         tagId: 'test-pb-banner',
-        siteId: 'prebid.example.com'
+        siteId: 1
       }
     }]
   }, {
@@ -45,7 +45,7 @@ var adUnits = [
       bidder: 'sortable',
       params: {
         tagId: 'test-pb-sidebar',
-        siteId: 'prebid.example.com',
+        siteId: 1,
         'keywords': {
           'keyA': 'valA'
         }

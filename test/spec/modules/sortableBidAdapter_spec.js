@@ -15,14 +15,10 @@ describe('sortableBidAdapter', function() {
         'bidder': 'sortable',
         'params': {
           'tagId': '403370',
-          'siteId': 'example.com',
+          'siteId': 1,
           'keywords': {
             'key1': 'val1',
             'key2': 'val2'
-          },
-          'floorSizeMap': {
-            '728x90': 0.15,
-            '300x250': 1.20
           }
         },
         'adUnitCode': 'adunit-code',
@@ -62,45 +58,6 @@ describe('sortableBidAdapter', function() {
       bid.params = {};
       expect(spec.isBidRequestValid(bid)).to.equal(false);
     });
-
-    it('should return false when the floorSizeMap is invalid', () => {
-      let bid = makeBid();
-      bid.params.floorSizeMap = {
-        'sixforty by foureighty': 1234
-      };
-      expect(spec.isBidRequestValid(bid)).to.equal(false);
-      bid.params.floorSizeMap = {
-        '728x90': 'three'
-      }
-      expect(spec.isBidRequestValid(bid)).to.equal(false);
-      bid.params.floorSizeMap = 'a';
-      expect(spec.isBidRequestValid(bid)).to.equal(false);
-    });
-
-    it('should return true when the floorSizeMap is missing or empty', () => {
-      let bid = makeBid();
-      bid.params.floorSizeMap = {};
-      expect(spec.isBidRequestValid(bid)).to.equal(true);
-      delete bid.params.floorSizeMap;
-      expect(spec.isBidRequestValid(bid)).to.equal(true);
-    });
-    it('should return false when the keywords are invalid', () => {
-      let bid = makeBid();
-      bid.params.keywords = {
-        'badval': 1234
-      };
-      expect(spec.isBidRequestValid(bid)).to.equal(false);
-      bid.params.keywords = 'a';
-      expect(spec.isBidRequestValid(bid)).to.equal(false);
-    });
-
-    it('should return true when the keywords are missing or empty', () => {
-      let bid = makeBid();
-      bid.params.keywords = {};
-      expect(spec.isBidRequestValid(bid)).to.equal(true);
-      delete bid.params.keywords;
-      expect(spec.isBidRequestValid(bid)).to.equal(true);
-    });
   });
 
   describe('buildRequests', () => {
@@ -108,15 +65,10 @@ describe('sortableBidAdapter', function() {
       'bidder': 'sortable',
       'params': {
         'tagId': '403370',
-        'siteId': 'example.com',
-        'floor': 0.21,
+        'siteId': 1,
         'keywords': {
           'key1': 'val1',
           'key2': 'val2'
-        },
-        'floorSizeMap': {
-          '728x90': 0.15,
-          '300x250': 1.20
         }
       },
       'sizes': [
@@ -139,8 +91,8 @@ describe('sortableBidAdapter', function() {
     });
 
     it('sends screen dimensions', () => {
-      expect(requestBody.site.device.w).to.equal(screen.width);
-      expect(requestBody.site.device.h).to.equal(screen.height);
+      expect(requestBody.site.device.w).to.equal(800);
+      expect(requestBody.site.device.h).to.equal(600);
     });
 
     it('includes the ad size in the bid request', () => {
@@ -149,20 +101,12 @@ describe('sortableBidAdapter', function() {
     });
 
     it('includes the params in the bid request', () => {
-      expect(requestBody.imp[0].ext.keywords).to.deep.equal(
-        {'key1': 'val1',
-          'key2': 'val2'}
-      );
-      expect(requestBody.site.publisher.id).to.equal('example.com');
+      expect(requestBody.imp[0].ext.keywords).to.deep.equal([
+        {'name': 'key1', 'value': 'val1'},
+        {'name': 'key2', 'value': 'val2'}
+      ]);
+      expect(requestBody.site.publisher.id).to.equal(1);
       expect(requestBody.imp[0].tagid).to.equal('403370');
-      expect(requestBody.imp[0].bidfloor).to.equal(0.21);
-    });
-
-    it('should have the floor size map set', () => {
-      expect(requestBody.imp[0].ext.floorSizeMap).to.deep.equal({
-        '728x90': 0.15,
-        '300x250': 1.20
-      });
     });
   });
 
@@ -176,7 +120,6 @@ describe('sortableBidAdapter', function() {
               'bid': [
                 {
                   'id': '6vmb3isptf',
-                  'crid': 'sortablescreative',
                   'impid': '322add653672f68',
                   'price': 1.22,
                   'adm': '<!-- creative -->',
@@ -199,7 +142,7 @@ describe('sortableBidAdapter', function() {
       'cpm': 1.22,
       'width': 728,
       'height': 90,
-      'creativeId': 'sortablescreative',
+      'creativeId': '6vmb3isptf',
       'dealId': null,
       'currency': 'USD',
       'netRevenue': true,
@@ -212,16 +155,6 @@ describe('sortableBidAdapter', function() {
       let result = spec.interpretResponse(makeResponse());
       expect(result.length).to.equal(1);
       expect(result[0]).to.deep.equal(expectedBid);
-    });
-
-    it('should handle a missing crid', () => {
-      let noCridResponse = makeResponse();
-      delete noCridResponse.body.seatbid[0].bid[0].crid;
-      const fallbackCrid = noCridResponse.body.seatbid[0].bid[0].id;
-      let noCridResult = Object.assign({}, expectedBid, {'creativeId': fallbackCrid});
-      let result = spec.interpretResponse(noCridResponse);
-      expect(result.length).to.equal(1);
-      expect(result[0]).to.deep.equal(noCridResult);
     });
 
     it('should handle a missing nurl', () => {
