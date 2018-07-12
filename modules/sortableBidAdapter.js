@@ -95,7 +95,7 @@ export const spec = {
             cpm: parseFloat(bid.price),
             width: parseInt(bid.w),
             height: parseInt(bid.h),
-            creativeId: bid.id,
+            creativeId: bid.crid || bid.id,
             dealId: bid.dealid || null,
             currency: 'USD',
             netRevenue: true,
