@@ -102,10 +102,10 @@ describe('sortableBidAdapter', function() {
     });
 
     it('includes the params in the bid request', () => {
-      expect(requestBody.imp[0].ext.keywords).to.deep.equal([
-        {'name': 'key1', 'value': 'val1'},
-        {'name': 'key2', 'value': 'val2'}
-      ]);
+      expect(requestBody.imp[0].ext.keywords).to.deep.equal(
+        {'key1': 'val1',
+          'key2': 'val2'}
+      );
       expect(requestBody.site.publisher.id).to.equal('example.com');
       expect(requestBody.imp[0].tagid).to.equal('403370');
       expect(requestBody.imp[0].bidfloor).to.equal(0.21);
