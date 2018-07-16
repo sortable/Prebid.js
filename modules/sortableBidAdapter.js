@@ -44,6 +44,9 @@ export const spec = {
           rv.ext[partner] = params;
         });
       }
+      if (bid.params.floorSizeMap) {
+        rv.ext.floorSizeMap = bid.params.floorSizeMap;
+      }
       return rv;
     });
     const gdprConsent = bidderRequest && bidderRequest.gdprConsent;

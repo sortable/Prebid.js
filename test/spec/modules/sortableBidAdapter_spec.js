@@ -19,6 +19,10 @@ describe('sortableBidAdapter', function() {
           'keywords': {
             'key1': 'val1',
             'key2': 'val2'
+          },
+          'floorSizeMap': {
+            '728x90': 0.15,
+            '300x250': 1.20
           }
         },
         'adUnitCode': 'adunit-code',
@@ -70,6 +74,10 @@ describe('sortableBidAdapter', function() {
         'keywords': {
           'key1': 'val1',
           'key2': 'val2'
+        },
+        'floorSizeMap': {
+          '728x90': 0.15,
+          '300x250': 1.20
         }
       },
       'sizes': [
@@ -109,6 +117,13 @@ describe('sortableBidAdapter', function() {
       expect(requestBody.site.publisher.id).to.equal('example.com');
       expect(requestBody.imp[0].tagid).to.equal('403370');
       expect(requestBody.imp[0].bidfloor).to.equal(0.21);
+    });
+
+    it('should have the floor size map set', () => {
+      expect(requestBody.imp[0].ext.floorSizeMap).to.deep.equal({
+        '728x90': 0.15,
+        '300x250': 1.20
+      });
     });
   });
 
