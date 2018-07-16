@@ -122,6 +122,7 @@ describe('sortableBidAdapter', function() {
               'bid': [
                 {
                   'id': '6vmb3isptf',
+                  'crid': 'sortablescreative',
                   'impid': '322add653672f68',
                   'price': 1.22,
                   'adm': '<!-- creative -->',
@@ -144,7 +145,7 @@ describe('sortableBidAdapter', function() {
       'cpm': 1.22,
       'width': 728,
       'height': 90,
-      'creativeId': '6vmb3isptf',
+      'creativeId': 'sortablescreative',
       'dealId': null,
       'currency': 'USD',
       'netRevenue': true,
@@ -157,6 +158,16 @@ describe('sortableBidAdapter', function() {
       let result = spec.interpretResponse(makeResponse());
       expect(result.length).to.equal(1);
       expect(result[0]).to.deep.equal(expectedBid);
+    });
+
+    it('should handle a missing crid', () => {
+      let noCridResponse = makeResponse();
+      delete noCridResponse.body.seatbid[0].bid[0].crid;
+      const fallbackCrid = noCridResponse.body.seatbid[0].bid[0].id;
+      let noCridResult = Object.assign({}, expectedBid, {'creativeId': fallbackCrid});
+      let result = spec.interpretResponse(noCridResponse);
+      expect(result.length).to.equal(1);
+      expect(result[0]).to.deep.equal(noCridResult);
     });
 
     it('should handle a missing nurl', () => {
