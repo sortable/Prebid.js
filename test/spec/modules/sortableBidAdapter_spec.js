@@ -65,11 +65,11 @@ describe('sortableBidAdapter', function() {
 
     it('should return false when the floorSizeMap is invalid', () => {
       let bid = makeBid();
-      bid.floorSizeMap = {
+      bid.params.floorSizeMap = {
         'sixforty by foureighty': 1234
       };
       expect(spec.isBidRequestValid(bid)).to.equal(false);
-      bid.floorSizeMap = {
+      bid.params.floorSizeMap = {
         '728x90': 'three'
       }
       expect(spec.isBidRequestValid(bid)).to.equal(false);
@@ -77,9 +77,9 @@ describe('sortableBidAdapter', function() {
 
     it('should return true when the floorSizeMap is missing or empty', () => {
       let bid = makeBid();
-      bid.floorSizeMap = {};
+      bid.params.floorSizeMap = {};
       expect(spec.isBidRequestValid(bid)).to.equal(true);
-      delete bid.floorSizeMap;
+      delete bid.params.floorSizeMap;
       expect(spec.isBidRequestValid(bid)).to.equal(true);
     });
   });

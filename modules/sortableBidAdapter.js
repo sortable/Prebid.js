@@ -15,11 +15,11 @@ export const spec = {
   isBidRequestValid: function(bid) {
     const haveSiteId = !!config.getConfig('sortableId');
     const validSize = /\d+x\d+/
-    const validFloorSizeMap = !bid.params.floorSizeMap || bid.params.floorSizeMap.every(([size, floor]) => {
-      size.match(validSize) && utils.isNumber(floor)
-    })
+    const validFloorSizeMap = !bid.params.floorSizeMap ||
+      Object.keys(bid.params.floorSizeMap).every(size =>
+        size.match(validSize) && utils.isNumber(bid.params.floorSizeMap[size]));
     return !!(bid.params.tagId && (haveSiteId || bid.params.siteId) && validFloorSizeMap && bid.sizes &&
-      bid.sizes.every(sizeArr => sizeArr.length == 2 && sizeArr.every(Number.isInteger)));
+      bid.sizes.every(sizeArr => sizeArr.length == 2 && sizeArr.every(num => utils.isNumber(num))));
   },
 
   buildRequests: function(validBidReqs, bidderRequest) {
