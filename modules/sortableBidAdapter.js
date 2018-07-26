@@ -17,15 +17,15 @@ export const spec = {
     const validFloor = !bid.params.floor || utils.isNumber(bid.params.floor);
     const validSize = /\d+x\d+/;
     const validFloorSizeMap = !bid.params.floorSizeMap ||
-      (utils.isPlainObject(bid.params.floorSizeMap) &&
+      (utils.isA(bid.params.floorSizeMap, 'Object') &&
         Object.keys(bid.params.floorSizeMap).every(size =>
           size.match(validSize) && utils.isNumber(bid.params.floorSizeMap[size])
-        ))
+        ));
     const validKeywords = !bid.params.keywords ||
-      (utils.isPlainObject(bid.params.keywords) &&
+      (utils.isA(bid.params.keywords, 'Object') &&
         Object.keys(bid.params.keywords).every(key =>
           utils.isStr(key) && utils.isStr(bid.params.keywords[key])
-        ))
+        ));
     return !!(bid.params.tagId && haveSiteId && validFloor && validFloorSizeMap && validKeywords && bid.sizes &&
       bid.sizes.every(sizeArr => sizeArr.length == 2 && sizeArr.every(num => utils.isNumber(num))));
   },
