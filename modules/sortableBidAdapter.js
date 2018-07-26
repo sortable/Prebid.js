@@ -46,7 +46,6 @@ export const spec = {
       }
       return rv;
     });
-    const gdprConsent = bidderRequest && bidderRequest.gdprConsent;
     const sortableBidReq = {
       id: utils.getUniqueIdentifierStr(),
       imp: sortableImps,
@@ -63,19 +62,6 @@ export const spec = {
         },
       },
     };
-    if (gdprConsent) {
-      sortableBidReq.user = {
-        ext: {
-          consent: gdprConsent.consentString
-        }
-      };
-      sortableBidReq.regs = {
-        ext: {
-          gdpr: gdprConsent.gdprApplies ? 1 : 0
-        }
-      };
-    }
-
     return {
       method: 'POST',
       url: `//${SERVER_URL}/openrtb2/auction?src=${REPO_AND_VERSION}&host=${loc.host}`,
@@ -117,16 +103,10 @@ export const spec = {
     return sortableBids;
   },
 
-  getUserSyncs: (syncOptions, responses, gdprConsent) => {
+  getUserSyncs: (syncOptions, responses) => {
     const sortableConfig = config.getConfig('sortable');
     if (syncOptions.iframeEnabled && sortableConfig && !!sortableConfig.siteId) {
       let syncUrl = `//${SERVER_URL}/sync?f=html&s=${sortableConfig.siteId}&u=${encodeURIComponent(utils.getTopWindowLocation())}`;
-
-      if (gdprConsent) {
-        syncurl += '&g=' + (gdprConsent.gdprApplies ? 1 : 0);
-        syncurl += '&cs=' + encodeURIComponent(gdprConsent.consentString || '');
-      }
-
       return [{
         type: 'iframe',
         url: syncUrl
