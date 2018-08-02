@@ -131,8 +131,7 @@ export const spec = {
 
   onTimeout(details) {
     ajax(`//${SERVER_URL}/prebid/timeout`, null, JSON.stringify(details), {
-      method: 'POST',
-      contentType: 'text/plain'
+      method: 'POST'
     });
   }
 };
