@@ -53,7 +53,7 @@ const expandSize = size => size.split('x').map(Number);
  * @param {String} size
  * @returns {Boolean}
  */
-const isValidSize = size => includes(['300x250', '320x50'], size);
+const isValidSize = size => includes(['300x250', '320x50', '728x90', '300x600'], size);
 
 /**
  * Is this a valid, non-sized format?
