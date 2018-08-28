@@ -111,6 +111,9 @@ export const spec = {
           } else if (bid.nurl) {
             bidObj.adUrl = bid.nurl;
           }
+          if (bid.ext) {
+            bidObj[BIDDER_CODE] = bid.ext;
+          }
           sortableBids.push(bidObj);
         });
       });
