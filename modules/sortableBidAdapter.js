@@ -1,15 +1,84 @@
 import * as utils from 'src/utils';
 import { registerBidder } from 'src/adapters/bidderFactory';
 import { config } from 'src/config';
-import { BANNER } from 'src/mediaTypes';
+import { BANNER, NATIVE } from 'src/mediaTypes';
 import { REPO_AND_VERSION } from 'src/constants';
 
 const BIDDER_CODE = 'sortable';
 const SERVER_URL = 'c.deployads.com';
 
+function setAssetRequired(native, asset) {
+  if (native.required) {
+    asset.required = 1;
+  }
+  return asset;
+}
+
+function buildNativeRequest(nativeMediaType) {
+  const assets = [];
+  const title = nativeMediaType.title;
+  if (title) {
+    assets.push(setAssetRequired(title, {
+      title: {len: title.len}
+    }));
+  }
+  const img = nativeMediaType.image;
+  if (img) {
+    assets.push(setAssetRequired(img, {
+      img: {
+        type: 3 // Main
+      }
+    }));
+  }
+  utils._each(assets, (asset, id) => asset.id = id);
+  return {
+    ver: '1',
+    request: JSON.stringify({
+      ver: '1',
+      assets
+    })
+  };
+}
+
+function tryParseNativeResponse(adm) {
+  let native = null;
+  try {
+    native = JSON.parse(adm);
+  } catch (e) {
+    if (!(e instanceof SyntaxError)) {
+      throw e;
+    }
+  }
+  return native && native.native;
+}
+
+function interpretNativeResponse(response) {
+  const native = {};
+  if (response.link) {
+    native.clickUrl = response.link.url;
+  }
+  utils._each(native.assets, asset => {
+    if (asset.title) {
+      native.title = asset.title.text;
+    }
+    if (asset.img) {
+      if (asset.img.w || asset.img.h) {
+        native.image = {
+          url: asset.img.url,
+          width: asset.img.w,
+          height: asset.img.h
+        };
+      } else {
+        native.image = asset.img.url;
+      }
+    }
+  });
+  return native;
+}
+
 export const spec = {
   code: BIDDER_CODE,
-  supportedMediaTypes: [BANNER],
+  supportedMediaTypes: [BANNER, NATIVE],
 
   isBidRequestValid: function(bid) {
     const sortableConfig = config.getConfig('sortable');
@@ -36,14 +105,22 @@ export const spec = {
     let loc = utils.getTopWindowLocation();
 
     const sortableImps = utils._map(validBidReqs, bid => {
-      let rv = {
+      const rv = {
         id: bid.bidId,
         tagid: bid.params.tagId,
-        banner: {
-          format: utils._map(bid.sizes, ([width, height]) => ({w: width, h: height}))
-        },
         ext: {}
       };
+      const bannerMediaType = utils.deepAccess(bid, `mediaTypes.${BANNER}`);
+      const nativeMediaType = utils.deepAccess(bid, `mediaTypes.${NATIVE}`);
+      if (bannerMediaType || !nativeMediaType) {
+        const bannerSizes = (bannerMediaType && bannerMediaType.sizes) || bid.sizes || [];
+        rv.banner = {
+          format: utils._map(bannerSizes, ([width, height]) => ({w: width, h: height}))
+        };
+      }
+      if (nativeMediaType) {
+        rv.native = buildNativeRequest(nativeMediaType);
+      }
       if (bid.params.floor) {
         rv.bidfloor = bid.params.floor;
       }
@@ -116,11 +193,18 @@ export const spec = {
             mediaType: BANNER,
             ttl: 60
           };
-          if (bid.adm && bid.nurl) {
-            bidObj.ad = bid.adm;
-            bidObj.ad += utils.createTrackPixelHtml(decodeURIComponent(bid.nurl));
-          } else if (bid.adm) {
-            bidObj.ad = bid.adm;
+          if (bid.adm) {
+            const native = tryParseNativeResponse(bid.adm);
+            if (native) {
+              bidObj.mediaType = NATIVE;
+              bidObj.native = interpretNativeResponse(native);
+            } else {
+              bidObj.mediaType = BANNER;
+              bidObj.ad = bid.adm;
+              if (bid.nurl) {
+                bidObj.ad += utils.createTrackPixelHtml(decodeURIComponent(bid.nurl));
+              }
+            }
           } else if (bid.nurl) {
             bidObj.adUrl = bid.nurl;
           }
