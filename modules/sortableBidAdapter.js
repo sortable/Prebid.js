@@ -26,7 +26,9 @@ function buildNativeRequest(nativeMediaType) {
   if (img) {
     assets.push(setAssetRequired(img, {
       img: {
-        type: 3 // Main
+        type: 3, // Main
+        wmin: 1,
+        hmin: 1
       }
     }));
   }
