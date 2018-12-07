@@ -59,7 +59,7 @@ function interpretNativeResponse(response) {
   if (response.link) {
     native.clickUrl = response.link.url;
   }
-  utils._each(native.assets, asset => {
+  utils._each(response.assets, asset => {
     if (asset.title) {
       native.title = asset.title.text;
     }
