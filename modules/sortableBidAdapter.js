@@ -156,6 +156,9 @@ export const spec = {
         },
       },
     };
+    if (bidderRequest && bidderRequest.timeout > 0) {
+      sortableBidReq.tmax = bidderRequest.timeout;
+    }
     if (gdprConsent) {
       sortableBidReq.user = {
         ext: {
