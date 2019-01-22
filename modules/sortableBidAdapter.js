@@ -78,6 +78,18 @@ function interpretNativeResponse(response) {
   return native;
 }
 
+function transformSyncs(responses, type, syncs) {
+  utils._each(responses, res => {
+    if (res.body && res.body.ext && res.body.ext.sync_dsps && res.body.ext.sync_dsps.length) {
+      utils._each(res.body.ext.sync_dsps, sync => {
+        if (sync[0] === type && sync[1]) {
+          syncs.push({type, url: sync[1]});
+        }
+      });
+    }
+  });
+}
+
 export const spec = {
   code: BIDDER_CODE,
   supportedMediaTypes: [BANNER, NATIVE],
@@ -223,21 +235,15 @@ export const spec = {
     return sortableBids;
   },
 
-  getUserSyncs: (syncOptions, responses, gdprConsent) => {
-    const sortableConfig = config.getConfig('sortable');
-    if (syncOptions.iframeEnabled && sortableConfig && !!sortableConfig.siteId) {
-      let syncUrl = `//${SERVER_URL}/sync?f=html&s=${sortableConfig.siteId}&u=${encodeURIComponent(utils.getTopWindowLocation())}`;
-
-      if (gdprConsent) {
-        syncurl += '&g=' + (gdprConsent.gdprApplies ? 1 : 0);
-        syncurl += '&cs=' + encodeURIComponent(gdprConsent.consentString || '');
-      }
-
-      return [{
-        type: 'iframe',
-        url: syncUrl
-      }];
+  getUserSyncs: (syncOptions, responses) => {
+    const syncs = [];
+    if (syncOptions.iframeEnabled) {
+      transformSyncs(responses, 'iframe', syncs);
     }
+    if (syncOptions.pixelEnabled) {
+      transformSyncs(responses, 'image', syncs);
+    }
+    return syncs;
   },
 
   onTimeout(details) {

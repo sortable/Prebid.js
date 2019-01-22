@@ -265,4 +265,34 @@ describe('sortableBidAdapter', function() {
       expect(result[0]).to.deep.equal(expectedResult);
     });
   });
+
+  it('should return iframe syncs', () => {
+    const syncResponse = {
+      ext: {
+        sync_dsps: [
+          ['iframe', 'http://example-dsp/sync-iframe'],
+          ['image', 'http://example-dsp/sync-image']
+        ]
+      }
+    };
+    expect(spec.getUserSyncs({iframeEnabled: true}, [{body: syncResponse}])).to.deep.equal([{
+      type: 'iframe',
+      url: 'http://example-dsp/sync-iframe'
+    }]);
+  });
+
+  it('should return image syncs', () => {
+    const syncResponse = {
+      ext: {
+        sync_dsps: [
+          ['iframe', 'http://example-dsp/sync-iframe'],
+          ['image', 'http://example-dsp/sync-image']
+        ]
+      }
+    };
+    expect(spec.getUserSyncs({pixelEnabled: true}, [{body: syncResponse}])).to.deep.equal([{
+      type: 'image',
+      url: 'http://example-dsp/sync-image'
+    }]);
+  });
 });
