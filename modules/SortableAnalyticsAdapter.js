@@ -68,6 +68,7 @@ const EVENT_KEYS_SHORT_NAMES = {
   'bidTopCpmCurrency': 'btcc',
   'bidTopIsNetRevenue': 'btin',
   'bidTopFactor': 'btif',
+  'bidTopSrc': 'btsrc',
   'cpm': 'c',
   'currency': 'cc',
   'dealId': 'did',
@@ -438,6 +439,7 @@ function handleBidWon(event) {
       bidFromUnit.bidTopCpm = event.cpm;
       bidFromUnit.bidTopCpmCurrency = event.currency;
       bidFromUnit.bidTopIsNetRevenue = event.netRevenue;
+      bidFromUnit.bidTopSrc = event.bidderCode;
       bidFromUnit.isTop = event.bidderCode === bidderCode;
     });
   } else {
