@@ -500,30 +500,30 @@ function handleError(eventType, event, e) {
 }
 
 const sortableAdapter = Object.assign(adapter({url: DEFAULT_URL, ANALYTICS_TYPE}), {
-  track({eventType, event}) {
+  track({eventType, args}) {
     try {
       switch (eventType) {
         case AUCTION_INIT:
-          handleAuctionInit(event);
+          handleAuctionInit(args);
           break;
         case AUCTION_END:
-          handleAuctionEnd(event);
+          handleAuctionEnd(args);
           break;
         case BID_REQUESTED:
-          handleBidRequested(event);
+          handleBidRequested(args);
           break;
         case BID_ADJUSTMENT:
-          handleBidAdjustment(event);
+          handleBidAdjustment(args);
           break;
         case BID_WON:
-          handleBidWon(event);
+          handleBidWon(args);
           break;
         case BID_TIMEOUT:
-          handleBidTimeout(event);
+          handleBidTimeout(args);
           break;
       }
     } catch (e) {
-      handleError(eventType, event, e);
+      handleError(eventType, args, e);
     }
   },
 });
