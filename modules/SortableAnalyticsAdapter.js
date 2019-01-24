@@ -18,10 +18,11 @@ const settings = {};
 const {
   EVENTS: {
     AUCTION_INIT,
+    AUCTION_END,
     BID_REQUESTED,
     BID_ADJUSTMENT,
     BID_WON,
-    BID_TIMEOUT
+    BID_TIMEOUT,
   }
 } = CONSTANTS;
 
@@ -34,7 +35,8 @@ const SORTABLE_EVENTS = {
   BID_RECEIVED: 'pbrv',
   BID_WON: 'pbrw',
   BID_TIMEOUT: 'pbto',
-  ERROR: 'pber'
+  ERROR: 'pber',
+  PB_BID: 'pbid'
 };
 
 const DEVICE_TYPE = {
@@ -52,13 +54,44 @@ const UTM_PARAMS = [
   'utm_term'
 ];
 
-const UTM_SHORT_NAMES = {
+const EVENT_KEYS_SHORT_NAMES = {
+  'auctionId': 'ai',
+  'adUnitCode': 'ac',
+  'adId': 'adi',
+  'bidderAlias': 'bs',
+  'bidFactor': 'bif',
+  'bidId': 'bid',
+  'bidRequestCount': 'brc',
+  'bidderRequestId': 'brid',
+  'bidRequestedSizes': 'rs',
+  'bidTopCpm': 'btcp',
+  'bidTopCpmCurrency': 'btcc',
+  'bidTopIsNetRevenue': 'btin',
+  'bidTopFactor': 'btif',
+  'cpm': 'c',
+  'currency': 'cc',
+  'dealId': 'did',
+  'isNetRevenue': 'inr',
+  'isTop': 'it',
+  'isTimeout': 'ito',
+  'mediaType': 'mt',
+  'reachedTop': 'rtp',
+  'numIframes': 'nif',
+  'size': 'siz',
+  'start': 'st',
+  'tagId': 'tgid',
+  'transactionId': 'trid',
+  'ttl': 'ttl',
+  'ttr': 'ttr',
+  'url': 'u',
   'utm_campaign': 'uc',
   'utm_source': 'us',
   'utm_medium': 'um',
   'utm_content': 'un',
   'utm_term': 'ut'
 };
+
+const auctionCache = {};
 
 let bidderFactors = null;
 
@@ -201,58 +234,45 @@ function getBiddersFactors() {
   return result;
 }
 
-function getBaseEvent(auctionId) {
-  return {'s': settings.key, 'ai': auctionId};
-}
-
-function getBidBaseEvent(auctionId, adUnitCode, bidderCode) {
-  const event = getBaseEvent(auctionId);
+function getBaseEvent(auctionId, adUnitCode, bidderCode) {
+  const event = {};
+  event['s'] = settings.key;
+  event['ai'] = auctionId;
   event['ac'] = adUnitCode;
   event['bs'] = bidderCode;
   return event;
 }
 
-function createAuctionInitEvent({auctionId, timeout}) {
+function getBidBaseEvent(auctionId, adUnitCode, bidderCode) {
   const sessionParams = getSessionParams();
-  const event = getBaseEvent(auctionId);
   const userId = getUserId();
   const prebidVersion = getPrebidVersion();
+  const event = getBaseEvent(auctionId, adUnitCode, bidderCode);
   event['cfdt'] = settings.deviceType;
   event['sid'] = sessionParams.sessionId;
   if (userId) event['uid'] = userId;
   event['pv'] = settings.pageviewId;
-  event['to'] = timeout;
+  event['to'] = auctionCache[auctionId].timeout;
   event['pbv'] = prebidVersion;
-  event['_type'] = SORTABLE_EVENTS.AUCTION_INIT;
-  UTM_PARAMS.filter(k => sessionParams[k]).forEach(k => event[UTM_SHORT_NAMES[k]] = sessionParams[k]);
+  UTM_PARAMS.filter(k => sessionParams[k]).forEach(k => event[EVENT_KEYS_SHORT_NAMES[k]] = sessionParams[k]);
   return event;
 }
 
-function createPrebidBidRequestEvent(
-  { auctionId,
-    adUnitCode,
-    bidderAlias,
-    bidRequestedSizes,
-    url,
-    start,
-    tagId,
-    transactionId,
-    bidId,
-    bidderRequestId,
-    bidRequestCount,
-    reachedTop,
-    numIframes}) {
-  const event = getBidBaseEvent(auctionId, adUnitCode, bidderAlias);
-  event['bid'] = bidId;
-  event['brid'] = bidderRequestId;
-  event['brc'] = bidRequestCount;
-  event['nif'] = numIframes;
-  event['rs'] = bidRequestedSizes;
-  event['rtp'] = reachedTop;
-  event['st'] = start;
-  event['tid'] = transactionId;
-  if (tagId) event['tgid'] = tagId;
-  event['_type'] = SORTABLE_EVENTS.BID_REQUEST;
+function createPBBidEvent(bid) {
+  const event = getBidBaseEvent(bid.auctionId, bid.adUnitCode, bid.bidderAlias);
+  const orphanKeys = [];
+  Object.keys(bid).forEach(k => {
+    const shortName = EVENT_KEYS_SHORT_NAMES[k];
+    if (!shortName) {
+      orphanKeys.push(k);
+    } else {
+      event[shortName] = bid[k];
+    }
+  });
+  if (orphanKeys.length) {
+    handleError(SORTABLE_EVENTS.ERROR, bid, {'message': `Short name not found for ${orphanKeys.join(',')}`});
+  }
+  event['_type'] = SORTABLE_EVENTS.PB_BID;
   return event;
 }
 
@@ -264,26 +284,9 @@ function getBidFactor(bidderAlias) {
   return typeof factor !== 'undefined' ? factor : 1.0;
 }
 
-function createPrebidBidReceivedEvent({auctionId, adUnitCode, bidderAlias, size, currency, isNetRevenue, cpm, dealId, ttl, mediaType, adId, ttr}) {
-  const bidFactor = getBidFactor(bidderAlias);
-  const event = getBidBaseEvent(auctionId, adUnitCode, bidderAlias);
-  event['adi'] = adId;
-  event['bif'] = bidFactor;
-  event['cpm'] = cpm;
-  event['cc'] = currency;
-  if (dealId) event['did'] = dealId;
-  event['inr'] = isNetRevenue;
-  event['mdt'] = mediaType;
-  event['siz'] = size;
-  event['ttl'] = ttl;
-  event['ttr'] = ttr;
-  event['_type'] = SORTABLE_EVENTS.BID_RECEIVED;
-  return event;
-}
-
 function createPrebidBidWonEvent({auctionId, adUnitCode, bidderAlias, cpm, currency, isNetRevenue}) {
   const bidFactor = getBidFactor(bidderAlias);
-  const event = getBidBaseEvent(auctionId, adUnitCode, bidderAlias);
+  const event = getBaseEvent(auctionId, adUnitCode, bidderAlias);
   event['bif'] = bidFactor;
   event['cpm'] = cpm;
   event['cc'] = currency;
@@ -293,7 +296,7 @@ function createPrebidBidWonEvent({auctionId, adUnitCode, bidderAlias, cpm, curre
 }
 
 function createPrebidTimeoutEvent({auctionId, adUnitCode, bidderAlias}) {
-  const event = getBidBaseEvent(auctionId, adUnitCode, bidderAlias);
+  const event = getBaseEvent(auctionId, adUnitCode, bidderAlias);
   event['_type'] = SORTABLE_EVENTS.BID_TIMEOUT;
   return event;
 }
@@ -340,15 +343,18 @@ function mergeAndCompressEvents(events) {
 function registerEvents(events) {
   eventsToBeSent = [...eventsToBeSent, ...events];
   if (!timeoutId) {
-    timeoutId = setTimeout(sendEvents, TIMEOUT_FOR_EVENTS);
+    timeoutId = setTimeout(() => {
+      const _eventsToBeSent = eventsToBeSent.slice();
+      eventsToBeSent = [];
+      sendEvents(_eventsToBeSent);
+    }, TIMEOUT_FOR_EVENTS);
   }
 }
 
-function sendEvents() {
+function sendEvents(events) {
   timeoutId = null;
   const url = settings.url;
-  const mergedEvents = mergeAndCompressEvents(eventsToBeSent);
-  eventsToBeSent = [];
+  const mergedEvents = mergeAndCompressEvents(events);
   const headers = {
     'contentType': 'text/plain',
     'method': 'POST'
@@ -361,111 +367,163 @@ function sizesToString(sizes) {
   return sizes.map(s => s.join('x')).join(',');
 }
 
-function handleBidRequested(args) {
-  const refererInfo = args.refererInfo;
+function handleBidRequested(event) {
+  const refererInfo = event.refererInfo;
   const url = refererInfo ? refererInfo.referer : utils.getTopWindowUrl();
-  const reachedTop = refererInfo ? refererInfo.reachedTop : false;
+  const reachedTop = refererInfo ? refererInfo.reachedTop : !!utils.getTopWindowUrl();
   const numIframes = refererInfo ? refererInfo.numIframes : 0;
-  const events = args.bids.map(bid => {
+  event.bids.forEach(bid => {
+    const auctionId = bid.auctionId;
+    const adUnitCode = bid.adUnitCode;
     const tagId = bid.bidder === 'sortable' ? bid.params.tagId : '';
-    return createPrebidBidRequestEvent({
+    if (!auctionCache[auctionId].adUnits[adUnitCode]) {
+      auctionCache[auctionId].adUnits[adUnitCode] = {bids: {}};
+    }
+    const adUnit = auctionCache[auctionId].adUnits[adUnitCode];
+    const bids = adUnit.bids;
+    const newBid = {
       adUnitCode: bid.adUnitCode,
-      auctionId: args.auctionId,
+      auctionId: event.auctionId,
       bidderAlias: bid.bidder,
       bidId: bid.bidId,
       bidderRequestId: bid.bidderRequestId,
       bidRequestCount: bid.bidRequestCount,
       bidRequestedSizes: sizesToString(bid.sizes),
       currency: bid.currency,
+      cpm: 0.0,
+      isTimeout: false,
+      isTop: false,
       numIframes: numIframes,
-      start: args.start,
+      start: event.start,
       tagId: tagId,
       transactionId: bid.transactionId,
       reachedTop: reachedTop,
       url: encodeURI(url)
+    };
+    bids[newBid.bidderAlias] = newBid;
+  });
+}
+
+function handleBidAdjustment(event) {
+  const auctionId = event.auctionId;
+  const adUnitCode = event.adUnitCode;
+  const adUnit = auctionCache[auctionId].adUnits[adUnitCode];
+  const bid = adUnit.bids[event.bidderCode];
+  const bidFactor = getBidFactor(event.bidderCode);
+  bid.adId = event.adId;
+  bid.adUnitCode = event.adUnitCode;
+  bid.auctionId = event.auctionId;
+  bid.bidderAlias = event.bidderCode;
+  bid.bidFactor = bidFactor;
+  bid.cpm = event.cpm;
+  bid.currency = event.currency;
+  bid.dealId = event.dealId;
+  bid.isNetRevenue = event.isNetRevenue;
+  bid.mediaType = event.mediaType;
+  bid.size = event.getSize();
+  bid.ttl = event.ttl;
+  bid.ttr = event.timeToRespond;
+}
+
+function handleBidWon(event) {
+  const auctionId = event.auctionId;
+  const adUnitCode = event.adUnitCode;
+  const adUnit = auctionCache[auctionId].adUnits[adUnitCode];
+  const auction = auctionCache[auctionId];
+  const bidFactor = getBidFactor(event.bidderCode);
+  if (!auction.sent) {
+    Object.keys(adUnit.bids).forEach(bidderCode => {
+      const bidFromUnit = adUnit.bids[bidderCode];
+      bidFromUnit.bidTopFactor = bidFactor;
+      bidFromUnit.bidTopCpm = event.cpm;
+      bidFromUnit.bidTopCpmCurrency = event.currency;
+      bidFromUnit.bidTopIsNetRevenue = event.netRevenue;
+      bidFromUnit.isTop = event.bidderCode === bidderCode;
     });
-  });
-  registerEvents(events);
+  } else {
+    const ev = createPrebidBidWonEvent({
+      adUnitCode: event.adUnitCode,
+      auctionId: event.auctionId,
+      bidderAlias: event.bidderCode,
+      currency: event.currency,
+      cpm: event.cpm,
+      isNetRevenue: event.isNetRevenue,
+    });
+    registerEvents([ev]);
+  }
 }
 
-function handleBidAdjustment(args) {
-  const event = createPrebidBidReceivedEvent({
-    adId: args.adId,
-    adUnitCode: args.adUnitCode,
-    auctionId: args.auctionId,
-    bidderAlias: args.bidderCode,
-    cpm: args.cpm,
-    currency: args.currency,
-    dealId: args.dealId,
-    isNetRevenue: args.isNetRevenue,
-    mediaType: args.mediaType,
-    size: args.getSize(),
-    ttl: args.ttl,
-    ttr: args.timeToRespond
-  });
-  registerEvents([event]);
-}
-
-function handleBidWon(args) {
-  const event = createPrebidBidWonEvent({
-    adUnitCode: args.adUnitCode,
-    auctionId: args.auctionId,
-    bidderAlias: args.bidderCode,
-    currency: args.currency,
-    cpm: args.cpm,
-    isNetRevenue: args.isNetRevenue
-  });
-  registerEvents([event]);
-}
-
-function handleBidTimeout(args) {
-  const events = args.map(timeout => {
+function handleBidTimeout(event) {
+  event.forEach(timeout => {
     const auctionId = timeout.auctionId;
     const adUnitCode = timeout.adUnitCode;
     const bidderAlias = timeout.bidder;
-    return createPrebidTimeoutEvent({auctionId, adUnitCode, bidderAlias});
+    const auction = auctionCache[auctionId];
+    if (!auction.sent) {
+      const adUnit = auction.adUnits[adUnitCode];
+      const bid = adUnit.bids[bidderAlias];
+      bid.isTimeout = true;
+    } else {
+      const event = createPrebidTimeoutEvent({auctionId, adUnitCode, bidderAlias});
+      registerEvents([event]);
+    }
   });
-  registerEvents(events);
 }
 
-function handleAuctionInit(args) {
-  const auctionId = args.auctionId;
-  const timeout = args.timeout;
-  const event = createAuctionInitEvent({auctionId, timeout});
-  registerEvents([event]);
+function handleAuctionInit(event) {
+  const auctionId = event.auctionId;
+  const timeout = event.timeout;
+  auctionCache[auctionId] = {timeout: timeout, auctionId: auctionId, adUnits: {}};
+}
+function handleAuctionEnd(event) {
+  setTimeout(() => {
+    const auction = auctionCache[event.auctionId];
+    const events = Object.keys(auction.adUnits).map(adUnitCode => {
+      return Object.keys(auction.adUnits[adUnitCode].bids).map(bidderCode => {
+        const bid = auction.adUnits[adUnitCode].bids[bidderCode];
+        return createPBBidEvent(bid);
+      })
+    }).reduce((prev, curr) => [...prev, ...curr], []);
+    sendEvents(events);
+    auction.sent = true;
+  }, TIMEOUT_FOR_EVENTS);
 }
 
-function handleError(eventType, args, e) {
-  const event = getBaseEvent();
+function handleError(eventType, event, e) {
+  const ev = {};
+  event['s'] = settings.key;
   event['ti'] = eventType;
-  event['args'] = JSON.stringify(args);
+  event['args'] = JSON.stringify(event);
   event['msg'] = e.message;
   event['_type'] = SORTABLE_EVENTS.ERROR;
-  registerEvents([event]);
+  registerEvents([ev]);
 }
 
 const sortableAdapter = Object.assign(adapter({url: DEFAULT_URL, ANALYTICS_TYPE}), {
-  track({eventType, args}) {
+  track({eventType, event}) {
     try {
       switch (eventType) {
         case AUCTION_INIT:
-          handleAuctionInit(args);
+          handleAuctionInit(event);
+          break;
+        case AUCTION_END:
+          handleAuctionEnd(event);
           break;
         case BID_REQUESTED:
-          handleBidRequested(args);
+          handleBidRequested(event);
           break;
         case BID_ADJUSTMENT:
-          handleBidAdjustment(args);
+          handleBidAdjustment(event);
           break;
         case BID_WON:
-          handleBidWon(args);
+          handleBidWon(event);
           break;
         case BID_TIMEOUT:
-          handleBidTimeout(args);
+          handleBidTimeout(event);
           break;
       }
     } catch (e) {
-      handleError(eventType, args, e);
+      handleError(eventType, event, e);
     }
   },
 });
