@@ -56,6 +56,12 @@ describe('sortableBidAdapter', function() {
       expect(spec.isBidRequestValid(bid)).to.equal(false);
     });
 
+    it('should return false when sizes are empty', function () {
+      let bid = makeBid();
+      bid.sizes = [];
+      expect(spec.isBidRequestValid(bid)).to.equal(false);
+    });
+
     it('should return false when require params are not passed', function () {
       let bid = makeBid();
       bid.params = {};
