@@ -110,7 +110,7 @@ export const spec = {
           utils.isStr(key) && utils.isStr(bid.params.keywords[key])
         ))
     return !!(bid.params.tagId && haveSiteId && validFloor && validFloorSizeMap && validKeywords && bid.sizes &&
-      bid.sizes.every(sizeArr => sizeArr.length == 2 && sizeArr.every(num => utils.isNumber(num))));
+      bid.sizes.length > 0 && bid.sizes.every(sizeArr => sizeArr.length == 2 && sizeArr.every(num => utils.isNumber(num))));
   },
 
   buildRequests: function(validBidReqs, bidderRequest) {
