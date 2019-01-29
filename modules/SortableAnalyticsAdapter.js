@@ -74,6 +74,7 @@ const EVENT_KEYS_SHORT_NAMES = {
   'dealId': 'did',
   'isNetRevenue': 'inr',
   'isTop': 'it',
+  'isWinner': 'iw',
   'isTimeout': 'ito',
   'mediaType': 'mt',
   'reachedTop': 'rtp',
@@ -91,6 +92,8 @@ const EVENT_KEYS_SHORT_NAMES = {
   'utm_content': 'un',
   'utm_term': 'ut'
 };
+
+const IGNORED_KEYS = ['responseTimestamp'];
 
 const auctionCache = {};
 
@@ -265,7 +268,9 @@ function createPBBidEvent(bid) {
   Object.keys(bid).forEach(k => {
     const shortName = EVENT_KEYS_SHORT_NAMES[k];
     if (!shortName) {
-      orphanKeys.push(k);
+      if (!IGNORED_KEYS.includes(k)) {
+        orphanKeys.push(k);
+      }
     } else {
       event[shortName] = bid[k];
     }
@@ -394,6 +399,7 @@ function handleBidRequested(event) {
       cpm: 0.0,
       isTimeout: false,
       isTop: false,
+      isWinner: false,
       numIframes: numIframes,
       start: event.start,
       tagId: tagId,
@@ -419,8 +425,9 @@ function handleBidAdjustment(event) {
   bid.cpm = event.cpm;
   bid.currency = event.currency;
   bid.dealId = event.dealId;
-  bid.isNetRevenue = event.isNetRevenue;
+  bid.isNetRevenue = event.netRevenue;
   bid.mediaType = event.mediaType;
+  bid.responseTimestamp = event.responseTimestamp;
   bid.size = event.getSize();
   bid.ttl = event.ttl;
   bid.ttr = event.timeToRespond;
@@ -431,16 +438,10 @@ function handleBidWon(event) {
   const adUnitCode = event.adUnitCode;
   const adUnit = auctionCache[auctionId].adUnits[adUnitCode];
   const auction = auctionCache[auctionId];
-  const bidFactor = getBidFactor(event.bidderCode);
   if (!auction.sent) {
     Object.keys(adUnit.bids).forEach(bidderCode => {
       const bidFromUnit = adUnit.bids[bidderCode];
-      bidFromUnit.bidTopFactor = bidFactor;
-      bidFromUnit.bidTopCpm = event.cpm;
-      bidFromUnit.bidTopCpmCurrency = event.currency;
-      bidFromUnit.bidTopIsNetRevenue = event.netRevenue;
-      bidFromUnit.bidTopSrc = event.bidderCode;
-      bidFromUnit.isTop = event.bidderCode === bidderCode;
+      bidFromUnit.isWinner = event.bidderCode === bidderCode;
     });
   } else {
     const ev = createPrebidBidWonEvent({
@@ -449,7 +450,7 @@ function handleBidWon(event) {
       bidderAlias: event.bidderCode,
       currency: event.currency,
       cpm: event.cpm,
-      isNetRevenue: event.isNetRevenue,
+      isNetRevenue: event.netRevenue,
     });
     registerEvents([ev]);
   }
@@ -481,10 +482,21 @@ function handleAuctionEnd(event) {
   setTimeout(() => {
     const auction = auctionCache[event.auctionId];
     const events = Object.keys(auction.adUnits).map(adUnitCode => {
-      return Object.keys(auction.adUnits[adUnitCode].bids).map(bidderCode => {
+      const bidderKeys = Object.keys(auction.adUnits[adUnitCode].bids);
+      const bids = bidderKeys.map(bidderCode => auction.adUnits[adUnitCode].bids[bidderCode]);
+      const highestBid = bids.length ? bids.reduce(utils.getOldestHighestCpmBid) : null;
+      return bidderKeys.map(bidderCode => {
         const bid = auction.adUnits[adUnitCode].bids[bidderCode];
+        if (highestBid && highestBid.cpm) {
+          bid.isTop = highestBid.bidderAlias === bid.bidderAlias;
+          bid.bidTopFactor = getBidFactor(highestBid.bidderAlias);
+          bid.bidTopCpm = highestBid.cpm;
+          bid.bidTopCpmCurrency = highestBid.currency;
+          bid.bidTopIsNetRevenue = highestBid.isNetRevenue;
+          bid.bidTopSrc = highestBid.bidderCode;
+        }
         return createPBBidEvent(bid);
-      })
+      });
     }).reduce((prev, curr) => [...prev, ...curr], []);
     sendEvents(events);
     auction.sent = true;
@@ -493,11 +505,11 @@ function handleAuctionEnd(event) {
 
 function handleError(eventType, event, e) {
   const ev = {};
-  event['s'] = settings.key;
-  event['ti'] = eventType;
-  event['args'] = JSON.stringify(event);
-  event['msg'] = e.message;
-  event['_type'] = SORTABLE_EVENTS.ERROR;
+  ev['s'] = settings.key;
+  ev['ti'] = eventType;
+  ev['args'] = JSON.stringify(event);
+  ev['msg'] = e.message;
+  ev['_type'] = SORTABLE_EVENTS.ERROR;
   registerEvents([ev]);
 }
 
