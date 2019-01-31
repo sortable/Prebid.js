@@ -165,8 +165,9 @@ export const spec = {
         device: {
           w: screen.width,
           h: screen.height
-        },
+        }
       },
+      tmax: config.getConfig('bidderTimeout')
     };
     if (bidderRequest && bidderRequest.timeout > 0) {
       sortableBidReq.tmax = bidderRequest.timeout;
