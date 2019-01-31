@@ -493,7 +493,7 @@ function handleAuctionEnd(event) {
           bid.bidTopCpm = highestBid.cpm;
           bid.bidTopCpmCurrency = highestBid.currency;
           bid.bidTopIsNetRevenue = highestBid.isNetRevenue;
-          bid.bidTopSrc = highestBid.bidderCode;
+          bid.bidTopSrc = highestBid.bidderAlias;
         }
         return createPBBidEvent(bid);
       });
