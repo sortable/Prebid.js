@@ -8,8 +8,9 @@ import {getGlobal} from 'src/prebidGlobal';
 const ajax = ajaxBuilder(0);
 
 const SESSION_STORAGE_PREFIX = 'ssrt_utm_sa4p_';
+const DEFAULT_PROTOCOL = 'https'
 const DEFAULT_HOST = 'e.deployads.com';
-const DEFAULT_URL = `//${DEFAULT_HOST}/e`;
+const DEFAULT_URL = `${DEFAULT_PROTOCOL}//${DEFAULT_HOST}/e`;
 const ANALYTICS_TYPE = 'endpoint';
 
 const UTM_STORE_KEY = 'utm';
@@ -555,7 +556,8 @@ sortableAdapter.initConfig = function (config) {
   settings.deviceType = detectDeviceType(getUserAgent());
   settings.disableSessionTracking = config.disableSessionTracking === undefined ? false : config.disableSessionTracking;
   settings.key = config.options.key;
-  settings.url = `//${config.options.eventHost || DEFAULT_HOST}/e/${settings.key}`;
+  settings.protocol = config.options.protocol || DEFAULT_PROTOCOL;
+  settings.url = `${settings.protocol}//${config.options.eventHost || DEFAULT_HOST}/e/${settings.key}`;
   settings.pageviewId = generateRandomId();
   return !!settings.key;
 };
