@@ -1,7 +1,7 @@
 import * as utils from '../src/utils';
 import { registerBidder } from '../src/adapters/bidderFactory';
 import { config } from '../src/config';
-import { BANNER, NATIVE } from 'src/mediaTypes';
+import { BANNER, NATIVE, VIDEO } from '../src/mediaTypes';
 
 const BIDDER_CODE = 'sortable';
 const SERVER_URL = 'c.deployads.com';
@@ -91,7 +91,7 @@ function transformSyncs(responses, type, syncs) {
 
 export const spec = {
   code: BIDDER_CODE,
-  supportedMediaTypes: [BANNER, NATIVE],
+  supportedMediaTypes: [BANNER, NATIVE, VIDEO],
 
   isBidRequestValid: function(bid) {
     const sortableConfig = config.getConfig('sortable');
@@ -108,8 +108,9 @@ export const spec = {
         Object.keys(bid.params.keywords).every(key =>
           utils.isStr(key) && utils.isStr(bid.params.keywords[key])
         ))
-    return !!(bid.params.tagId && haveSiteId && validFloor && validFloorSizeMap && validKeywords && bid.sizes &&
-      bid.sizes.length > 0 && bid.sizes.every(sizeArr => sizeArr.length == 2 && sizeArr.every(num => utils.isNumber(num))));
+    return !!(bid.params.tagId && haveSiteId && validFloor && validFloorSizeMap && validKeywords &&
+      ((bid.mediaTypes && bid.mediaTypes.video) || (bid.sizes &&
+      bid.sizes.length > 0 && bid.sizes.every(sizeArr => sizeArr.length == 2 && sizeArr.every(num => utils.isNumber(num))))));
   },
 
   buildRequests: function(validBidReqs, bidderRequest) {
@@ -125,7 +126,8 @@ export const spec = {
       };
       const bannerMediaType = utils.deepAccess(bid, `mediaTypes.${BANNER}`);
       const nativeMediaType = utils.deepAccess(bid, `mediaTypes.${NATIVE}`);
-      if (bannerMediaType || !nativeMediaType) {
+      const videoMediaType = utils.deepAccess(bid, `mediaTypes.${VIDEO}`);
+      if (bannerMediaType || (!nativeMediaType && !videoMediaType)) {
         const bannerSizes = (bannerMediaType && bannerMediaType.sizes) || bid.sizes || [];
         rv.banner = {
           format: utils._map(bannerSizes, ([width, height]) => ({w: width, h: height}))
@@ -133,6 +135,27 @@ export const spec = {
       }
       if (nativeMediaType) {
         rv.native = buildNativeRequest(nativeMediaType);
+      }
+      if (videoMediaType && videoMediaType.context === 'instream') {
+        const video = {};
+        if (videoMediaType.playerSize && videoMediaType.playerSize.length) {
+          const size = videoMediaType.playerSize[0];
+          video.w = size[0];
+          video.h = size[1];
+        }
+        if (videoMediaType.api) {
+          video.api = videoMediaType.api;
+        }
+        if (videoMediaType.protocols) {
+          video.protocols = videoMediaType.protocols;
+        }
+        if (videoMediaType.playbackmethod) {
+          video.playbackmethod = videoMediaType.playbackmethod;
+        }
+        video.mimes = videoMediaType.mimes || ['video/mp4'];
+        video.minduration = utils.deepAccess(bid, 'params.video.minduration') || 1;
+        video.maxduration = utils.deepAccess(bid, 'params.video.maxduration') || 600;
+        rv.video = video;
       }
       if (bid.params.floor) {
         rv.bidfloor = bid.params.floor;
