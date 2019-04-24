@@ -137,7 +137,14 @@ export const spec = {
         rv.native = buildNativeRequest(nativeMediaType);
       }
       if (videoMediaType && videoMediaType.context === 'instream') {
-        const video = {};
+        const video = {placement: 1};
+        video.mimes = videoMediaType.mimes;
+        video.minduration = utils.deepAccess(bid, 'params.video.minduration') || 10;
+        video.maxduration = utils.deepAccess(bid, 'params.video.maxduration') || 60;
+        const startDelay = utils.deepAccess(bid, 'params.video.startdelay');
+        if (startDelay != null) {
+          video.startdelay = startDelay;
+        }
         if (videoMediaType.playerSize && videoMediaType.playerSize.length) {
           const size = videoMediaType.playerSize[0];
           video.w = size[0];
@@ -152,9 +159,6 @@ export const spec = {
         if (videoMediaType.playbackmethod) {
           video.playbackmethod = videoMediaType.playbackmethod;
         }
-        video.mimes = videoMediaType.mimes || ['video/mp4'];
-        video.minduration = utils.deepAccess(bid, 'params.video.minduration') || 1;
-        video.maxduration = utils.deepAccess(bid, 'params.video.maxduration') || 600;
         rv.video = video;
       }
       if (bid.params.floor) {
