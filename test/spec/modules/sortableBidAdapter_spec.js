@@ -336,7 +336,7 @@ describe('sortableBidAdapter', function() {
       const response = makeResponse();
       const bid = response.body.seatbid[0].bid[0];
       delete bid.nurl;
-      bid['ext'] = {ad_format: 'instream'};
+      bid.ext = {ad_format: 'instream'};
       const result = spec.interpretResponse(response)[0];
       expect(result.mediaType).to.equal('video');
       expect(result.vastXml).to.equal(bid.adm);
