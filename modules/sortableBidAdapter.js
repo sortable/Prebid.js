@@ -46,9 +46,7 @@ function tryParseNativeResponse(adm) {
   try {
     native = JSON.parse(adm);
   } catch (e) {
-    if (!(e instanceof SyntaxError)) {
-      throw e;
-    }
+    utils.logError('Sortable bid adapter unable to parse native bid response:\n\n' + e);
   }
   return native && native.native;
 }
@@ -108,9 +106,10 @@ export const spec = {
         Object.keys(bid.params.keywords).every(key =>
           utils.isStr(key) && utils.isStr(bid.params.keywords[key])
         ))
-    return !!(bid.params.tagId && haveSiteId && validFloor && validFloorSizeMap && validKeywords &&
-      ((bid.mediaTypes && bid.mediaTypes.video) || (bid.sizes &&
-      bid.sizes.length > 0 && bid.sizes.every(sizeArr => sizeArr.length == 2 && sizeArr.every(num => utils.isNumber(num))))));
+    const isBanner = !bid.mediaTypes || bid.mediaTypes[BANNER] || !(bid.mediaTypes[NATIVE] || bid.mediaTypes[VIDEO]);
+    const bannerSizes = isBanner ? utils.deepAccess(bid, `mediaType.${BANNER}.sizes`) || bid.sizes : null;
+    return !!(bid.params.tagId && haveSiteId && validFloor && validFloorSizeMap && validKeywords && (!isBanner ||
+      (bannerSizes && bannerSizes.length > 0 && bannerSizes.every(sizeArr => sizeArr.length == 2 && sizeArr.every(num => utils.isNumber(num))))));
   },
 
   buildRequests: function(validBidReqs, bidderRequest) {
@@ -127,8 +126,8 @@ export const spec = {
       const bannerMediaType = utils.deepAccess(bid, `mediaTypes.${BANNER}`);
       const nativeMediaType = utils.deepAccess(bid, `mediaTypes.${NATIVE}`);
       const videoMediaType = utils.deepAccess(bid, `mediaTypes.${VIDEO}`);
-      if (bannerMediaType || (!nativeMediaType && !videoMediaType)) {
-        const bannerSizes = (bannerMediaType && bannerMediaType.sizes) || bid.sizes || [];
+      if (bannerMediaType || !(nativeMediaType || videoMediaType)) {
+        const bannerSizes = (bannerMediaType && bannerMediaType.sizes) || bid.sizes;
         rv.banner = {
           format: utils._map(bannerSizes, ([width, height]) => ({w: width, h: height}))
         };
@@ -138,7 +137,7 @@ export const spec = {
       }
       if (videoMediaType && videoMediaType.context === 'instream') {
         const video = {placement: 1};
-        video.mimes = videoMediaType.mimes;
+        video.mimes = videoMediaType.mimes || [];
         video.minduration = utils.deepAccess(bid, 'params.video.minduration') || 10;
         video.maxduration = utils.deepAccess(bid, 'params.video.maxduration') || 60;
         const startDelay = utils.deepAccess(bid, 'params.video.startdelay');
@@ -237,10 +236,17 @@ export const spec = {
             ttl: 60
           };
           if (bid.adm) {
-            const native = tryParseNativeResponse(bid.adm);
-            if (native) {
+            const adFormat = utils.deepAccess(bid, 'ext.ad_format')
+            if (adFormat === 'native') {
+              let native = tryParseNativeResponse(bid.adm);
+              if (!native) {
+                return;
+              }
               bidObj.mediaType = NATIVE;
               bidObj.native = interpretNativeResponse(native);
+            } else if (adFormat === 'instream') {
+              bidObj.mediaType = VIDEO;
+              bidObj.vastXml = bid.adm;
             } else {
               bidObj.mediaType = BANNER;
               bidObj.ad = bid.adm;
