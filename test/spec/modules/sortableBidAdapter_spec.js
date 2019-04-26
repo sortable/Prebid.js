@@ -106,6 +106,25 @@ describe('sortableBidAdapter', function() {
       delete bid.params.keywords;
       expect(spec.isBidRequestValid(bid)).to.equal(true);
     });
+
+    it('should return true with video media type', () => {
+      const videoBid = {
+        'bidder': 'sortable',
+        'params': {
+          'tagId': '403370',
+          'siteId': 'example.com',
+        },
+        'adUnitCode': 'adunit-code',
+        'bidId': '30b31c1838de1e',
+        'bidderRequestId': '22edbae2733bf6',
+        'auctionId': '1d1a030790a475',
+        'mediaTypes': {
+          'video': {
+          }
+        }
+      };
+      expect(spec.isBidRequestValid(videoBid)).to.equal(true);
+    });
   });
 
   describe('buildRequests', function () {
@@ -168,6 +187,48 @@ describe('sortableBidAdapter', function() {
         '728x90': 0.15,
         '300x250': 1.20
       });
+    });
+
+    const videoBidRequests = [{
+      'bidder': 'sortable',
+      'params': {
+        'tagId': '403370',
+        'siteId': 'example.com',
+        'video': {
+          'minduration': 5,
+          'maxduration': 10,
+          'startdelay': 0
+        }
+      },
+      'bidId': '30b31c1838de1e',
+      'bidderRequestId': '22edbae2733bf6',
+      'auctionId': '1d1a030790a475',
+      'mediaTypes': {
+        'video': {
+          'context': 'instream',
+          'mimes': ['video/x-ms-wmv'],
+          'playerSize': [[400, 300]],
+          'api': [0],
+          'protocols': [2, 3],
+          'playbackmethod': [1]
+        }
+      }
+    }];
+
+    const videoRequest = spec.buildRequests(videoBidRequests);
+    const videoRequestBody = JSON.parse(videoRequest.data);
+
+    it('should include video params', () => {
+      const video = videoRequestBody.imp[0].video;
+      expect(video.mimes).to.deep.equal(['video/x-ms-wmv']);
+      expect(video.w).to.equal(400);
+      expect(video.h).to.equal(300);
+      expect(video.api).to.deep.equal([0]);
+      expect(video.protocols).to.deep.equal([2, 3]);
+      expect(video.playbackmethod).to.deep.equal([1]);
+      expect(video.minduration).to.equal(5);
+      expect(video.maxduration).to.equal(10);
+      expect(video.startdelay).to.equal(0);
     });
   });
 
@@ -269,6 +330,16 @@ describe('sortableBidAdapter', function() {
       const result = spec.interpretResponse(response);
       expect(result.length).to.equal(1);
       expect(result[0]).to.deep.equal(expectedResult);
+    });
+
+    it('should handle instream response', () => {
+      const response = makeResponse();
+      const bid = response.body.seatbid[0].bid[0];
+      delete bid.nurl;
+      bid['ext'] = {ad_format: 'instream'};
+      const result = spec.interpretResponse(response)[0];
+      expect(result.mediaType).to.equal('video');
+      expect(result.vastXml).to.equal(bid.adm);
     });
   });
 
