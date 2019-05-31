@@ -7,6 +7,7 @@ import { targeting } from '../src/targeting';
 import { formatQS, format as buildUrl, parse } from '../src/url';
 import { deepAccess, isEmpty, logError, parseSizesInput } from '../src/utils';
 import { config } from '../src/config';
+import { getGlobal } from 'src/prebidGlobal';
 
 /**
  * @typedef {Object} DfpVideoParams
@@ -58,7 +59,7 @@ const defaultParamConstants = {
  */
 export default function buildDfpVideoUrl(options) {
   if (!options.params && !options.url) {
-    logError(`A params object or a url is required to use pbjs.adServers.dfp.buildVideoUrl`);
+    logError(`A params object or a url is required to use ${getGlobal()}.adServers.dfp.buildVideoUrl`);
     return;
   }
 
