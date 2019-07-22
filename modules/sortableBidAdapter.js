@@ -177,12 +177,14 @@ export const spec = {
       return rv;
     });
     const gdprConsent = bidderRequest && bidderRequest.gdprConsent;
+    const href = bidderRequest && bidderRequest.refererInfo && bidderRequest.refererInfo.referer ?
+      bidderRequest.refererInfo.referer : loc.href;
     const sortableBidReq = {
       id: utils.getUniqueIdentifierStr(),
       imp: sortableImps,
       site: {
         domain: loc.hostname,
-        page: loc.href,
+        page: href,
         ref: utils.getTopWindowReferrer(),
         publisher: {
           id: globalSiteId || validBidReqs[0].params.siteId,
