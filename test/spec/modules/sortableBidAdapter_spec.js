@@ -151,7 +151,7 @@ describe('sortableBidAdapter', function() {
       'auctionId': '1d1a030790a475'
     }];
 
-    const request = spec.buildRequests(bidRequests);
+    const request = spec.buildRequests(bidRequests, {refererInfo: { referer: 'http://example.com/page?param=val' }});
     const requestBody = JSON.parse(request.data);
 
     it('sends bid request to our endpoint via POST', function () {
@@ -187,6 +187,11 @@ describe('sortableBidAdapter', function() {
         '728x90': 0.15,
         '300x250': 1.20
       });
+    });
+
+    it('sets domain and href correctly', function () {
+      expect(requestBody.site.domain).to.equal('localhost');
+      expect(requestBody.site.page).to.equal('http://example.com/page?param=val');
     });
 
     const videoBidRequests = [{
@@ -229,6 +234,11 @@ describe('sortableBidAdapter', function() {
       expect(video.minduration).to.equal(5);
       expect(video.maxduration).to.equal(10);
       expect(video.startdelay).to.equal(0);
+    });
+
+    it('sets domain and href correctly', function () {
+      expect(videoRequestBody.site.domain).to.equal('localhost');
+      expect(videoRequestBody.site.page).to.equal('http://localhost:9876/');
     });
   });
 
