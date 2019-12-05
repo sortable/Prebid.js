@@ -31,6 +31,29 @@ function buildNativeRequest(nativeMediaType) {
       }
     }));
   }
+  const icon = nativeMediaType.icon;
+  if (icon) {
+    assets.push(setAssetRequired(icon, {
+      img: {
+        type: 1, // Icon
+        wmin: 1,
+        hmin: 1
+      }
+    }));
+  }
+  const body = nativeMediaType.body;
+  if (body) {
+    assets.push(setAssetRequired(body, {data: {type: 2}}));
+  }
+  const cta = nativeMediaType.cta;
+  if (cta) {
+    assets.push(setAssetRequired(cta, {data: {type: 12}}));
+  }
+  const sponsoredBy = nativeMediaType.sponsoredBy;
+  if (sponsoredBy) {
+    assets.push(setAssetRequired(sponsoredBy, {data: {type: 1}}));
+  }
+
   utils._each(assets, (asset, id) => asset.id = id);
   return {
     ver: '1',
@@ -51,25 +74,43 @@ function tryParseNativeResponse(adm) {
   return native && native.native;
 }
 
+function createImgObject(img) {
+  if (img.w || img.h) {
+    return {
+      url: img.url,
+      width: img.w,
+      height: img.h
+    };
+  } else {
+    return img.url;
+  }
+}
+
 function interpretNativeResponse(response) {
   const native = {};
   if (response.link) {
     native.clickUrl = response.link.url;
   }
   utils._each(response.assets, asset => {
-    if (asset.title) {
-      native.title = asset.title.text;
-    }
-    if (asset.img) {
-      if (asset.img.w || asset.img.h) {
-        native.image = {
-          url: asset.img.url,
-          width: asset.img.w,
-          height: asset.img.h
-        };
-      } else {
-        native.image = asset.img.url;
-      }
+    switch (asset.id) {
+      case 1:
+        native.title = asset.title.text;
+        break;
+      case 2:
+        native.image = createImgObject(asset.img);
+        break;
+      case 3:
+        native.icon = createImgObject(asset.img);
+        break;
+      case 4:
+        native.body = asset.data.value;
+        break;
+      case 5:
+        native.cta = asset.data.value;
+        break;
+      case 6:
+        native.sponsoredBy = asset.data.value;
+        break;
     }
   });
   return native;
@@ -177,8 +218,8 @@ export const spec = {
       return rv;
     });
     const gdprConsent = bidderRequest && bidderRequest.gdprConsent;
-    const href = bidderRequest && bidderRequest.refererInfo && bidderRequest.refererInfo.referer ?
-      bidderRequest.refererInfo.referer : loc.href;
+    const href = bidderRequest && bidderRequest.refererInfo && bidderRequest.refererInfo.referer
+      ? bidderRequest.refererInfo.referer : loc.href;
     const sortableBidReq = {
       id: utils.getUniqueIdentifierStr(),
       imp: sortableImps,
