@@ -245,11 +245,13 @@ export const spec = {
           consent: gdprConsent.consentString
         }
       };
-      sortableBidReq.regs = {
-        ext: {
-          gdpr: gdprConsent.gdprApplies ? 1 : 0
-        }
-      };
+      if (typeof gdprConsent.gdprApplies == 'boolean') {
+        sortableBidReq.regs = {
+          ext: {
+            gdpr: gdprConsent.gdprApplies ? 1 : 0
+          }
+        };
+      }
     }
 
     return {
