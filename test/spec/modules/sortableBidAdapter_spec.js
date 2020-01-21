@@ -279,6 +279,57 @@ describe('sortableBidAdapter', function() {
     expect(videoRequestBody.site.domain).to.equal('localhost');
     expect(videoRequestBody.site.page).to.equal('http://localhost:9876/');
   });
+
+  const gdprBidRequests = [{
+    'bidder': 'sortable',
+    'params': {
+      'tagId': '403370',
+      'siteId': 'example.com',
+      'floor': 0.21,
+      'keywords': {},
+      'floorSizeMap': {}
+    },
+    'sizes': [
+      [300, 250]
+    ],
+    'bidId': '30b31c1838de1e',
+    'bidderRequestId': '22edbae2733bf6',
+    'auctionId': '1d1a030790a475'
+  }];
+  const consentString = 'BOJ/P2HOJ/P2HABABMAAAAAZ+A==';
+
+  function getGdprRequestBody(gdprApplies, consentString) {
+    const gdprRequest = spec.buildRequests(gdprBidRequests, {'gdprConsent': {
+      'gdprApplies': gdprApplies,
+      'consentString': consentString
+    }});
+    return JSON.parse(gdprRequest.data);
+  }
+
+  it('should handle gdprApplies being present and true', function() {
+    const gdprRequestBody = getGdprRequestBody(true, consentString);
+    expect(gdprRequestBody.regs.ext.gdpr).to.equal(1);
+    expect(gdprRequestBody.user.ext.consent).to.equal(consentString);
+  })
+
+  it('should handle gdprApplies being present and false', function() {
+    const gdprRequestBody = getGdprRequestBody(false, consentString);
+    expect(gdprRequestBody.regs.ext.gdpr).to.equal(0);
+    expect(gdprRequestBody.user.ext.consent).to.equal(consentString);
+  })
+
+  it('should handle gdprApplies being undefined', function() {
+    const gdprRequestBody = getGdprRequestBody(undefined, consentString);
+    expect(gdprRequestBody.regs).to.equal(undefined);
+    expect(gdprRequestBody.user.ext.consent).to.equal(consentString);
+  })
+
+  it('should handle gdprConsent being undefined', function() {
+    const gdprRequest = spec.buildRequests(gdprBidRequests);
+    const gdprRequestBody = JSON.parse(gdprRequest.data);
+    expect(gdprRequestBody.regs).to.equal(undefined);
+    expect(gdprRequestBody.user).to.equal(undefined);
+  })
 });
 
 describe('interpretResponse', function () {
